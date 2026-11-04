@@ -13,6 +13,7 @@ import {
   trackEvent,
 } from "@agent-native/core/client/analytics";
 import { useT } from "@agent-native/core/client/i18n";
+import { useFileUploadStatus } from "@agent-native/core/client/uploads";
 import {
   useSetHeaderActions,
   useSetPageTitle,
@@ -54,6 +55,7 @@ import {
   getReplyRequestMode,
   isMissingLlmProviderRunError,
 } from "@agent-native/toolkit/app/chat/chat/run-recovery";
+import { FileStorageSetupPopover } from "@agent-native/toolkit/app/chat/FileStorageSetupPopover";
 import {
   ThreadContextRing,
   threadHasFinishedReply,
@@ -87,6 +89,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { createAgentKitFileUploadSupport } from "@/lib/agentkit-file-uploads";
 import { APP_TITLE } from "@/lib/app-config";
 import { consumeChatHomeThreadId } from "@/lib/chat-home-thread";
 import {
@@ -327,11 +330,13 @@ function ChatThreadRouteContent({
     ],
   );
 
+  const [uploadSupport] = useState(createAgentKitFileUploadSupport);
   const [transport] = useState(() =>
     createAgentNativeAgentKitTransport({
       browserTabId: TAB_ID,
       surface: "app",
       adapter: { textFormat: "markdown" },
+      operations: uploadSupport.operations,
     }),
   );
 
@@ -352,6 +357,7 @@ function ChatThreadRouteContent({
               transportOwnership: "owned",
               retainActiveRunsOnThreadRelease: true,
               onIntegrityReport: reportStreamIntegrity,
+              upload: uploadSupport.upload,
             }}
             threadId={resolvedThreadId}
             labels={{
@@ -1229,6 +1235,21 @@ function ChatCanvas({
   const { threadId } = useAgentKit();
   const thread = useAgentThread();
   const control = useAgentKitControl(threadId);
+  const fileUploadStatus = useFileUploadStatus();
+  const fileStorageConfigured =
+    fileUploadStatus.data?.configured === true && !fileUploadStatus.isError;
+  const fileStorageMissing =
+    fileUploadStatus.data?.configured === false && !fileUploadStatus.isError;
+  const [fileStoragePromptOpen, setFileStoragePromptOpen] = useState(false);
+  useEffect(() => {
+    if (fileStorageConfigured) setFileStoragePromptOpen(false);
+  }, [fileStorageConfigured]);
+  const requestFileStorage = useCallback(() => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setFileStoragePromptOpen(true);
+  }, []);
   const stopButton = useAgentKitStopButton({
     label: t("agentChat.composer.stopResponse"), // i18n-key-ignore shared framework catalog
     onError: (error) => toast.error(error.message),
@@ -1394,6 +1415,17 @@ function ChatCanvas({
 
   return (
     <>
+      <FileStorageSetupPopover
+        open={fileStoragePromptOpen && !fileStorageConfigured}
+        onOpenChange={setFileStoragePromptOpen}
+        onConnected={() => void fileUploadStatus.refetch()}
+        {...(fileStorageMissing
+          ? { status: "missing" as const }
+          : {
+              status: "unavailable" as const,
+              onRetry: () => void fileUploadStatus.refetch(),
+            })}
+      />
       <ChatHeaderPublisher
         title={hasConversation ? chatTitle : null}
         actions={toolbar}
@@ -1407,6 +1439,8 @@ function ChatCanvas({
         onStartNewChat={() => void navigate(NEW_CHAT_PATH)}
         composerProps={{
           requireAgentEngine: true,
+          attachmentsEnabled: fileStorageConfigured,
+          onAttachmentRequest: requestFileStorage,
           contextUsageSlot: <ChatContextRing threadId={threadId} />,
           ...(initialText === undefined ? {} : { initialText }),
           ...(initialTextKey === undefined ? {} : { initialTextKey }),

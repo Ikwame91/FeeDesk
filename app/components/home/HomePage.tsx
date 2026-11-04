@@ -4,11 +4,13 @@ import {
 } from "@agent-native/core/client/agent-chat";
 import { createAgentNativeAgentKitTransport } from "@agent-native/core/client/agentkit-chat/transport";
 import { useT } from "@agent-native/core/client/i18n";
+import { useFileUploadStatus } from "@agent-native/core/client/uploads";
 import { AgentKitComposer } from "@agent-native/toolkit/app/agentkit/react/components";
 import { useAgentKitControl } from "@agent-native/toolkit/app/agentkit/react/context";
 import { CoreComposerRuntimeProvider } from "@agent-native/toolkit/app/chat/agentkit-chat/composer";
 import { CoreAgentKitRoot } from "@agent-native/toolkit/app/chat/agentkit-chat/index";
 import { useRealtimeVoiceModeOptional } from "@agent-native/toolkit/app/chat/composer";
+import { FileStorageSetupPopover } from "@agent-native/toolkit/app/chat/FileStorageSetupPopover";
 import { WaveBackground } from "@agent-native/toolkit/app/shared";
 import { AgentNativeIcon } from "@agent-native/toolkit/app/shared/AgentNativeIcon";
 import {
@@ -17,7 +19,7 @@ import {
   IconBrandGithub,
   IconUsers,
 } from "@tabler/icons-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,7 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { Separator } from "@/components/ui/separator";
+import { createAgentKitFileUploadSupport } from "@/lib/agentkit-file-uploads";
 import { getChatHomeThreadId } from "@/lib/chat-home-thread";
 import {
   chatHandoffComposerOptions,
@@ -51,11 +54,13 @@ function HomeAgentComposer() {
   const navigate = useNavigate();
   const realtimeVoice = useRealtimeVoiceModeOptional();
   const [threadId] = useState(getChatHomeThreadId);
+  const [uploadSupport] = useState(createAgentKitFileUploadSupport);
   const [transport] = useState(() =>
     createAgentNativeAgentKitTransport({
       browserTabId: TAB_ID,
       surface: "app",
       adapter: { textFormat: "markdown" },
+      operations: uploadSupport.operations,
     }),
   );
 
@@ -91,7 +96,10 @@ function HomeAgentComposer() {
       <CoreComposerRuntimeProvider>
         <CoreAgentKitRoot
           transport={transport}
-          clientOptions={{ transportOwnership: "owned" }}
+          clientOptions={{
+            transportOwnership: "owned",
+            upload: uploadSupport.upload,
+          }}
           threadId={threadId}
         >
           <HomeAgentComposerInput
@@ -120,37 +128,68 @@ function HomeAgentComposerInput({
 }) {
   const t = useT();
   const control = useAgentKitControl(threadId);
+  const fileUploadStatus = useFileUploadStatus();
+  const fileStorageConfigured =
+    fileUploadStatus.data?.configured === true && !fileUploadStatus.isError;
+  const fileStorageMissing =
+    fileUploadStatus.data?.configured === false && !fileUploadStatus.isError;
+  const [fileStoragePromptOpen, setFileStoragePromptOpen] = useState(false);
+  const fileStorageAnchorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (fileStorageConfigured) setFileStoragePromptOpen(false);
+  }, [fileStorageConfigured]);
 
   return (
-    <AgentKitComposer
-      threadId={threadId}
-      requireAgentEngine
-      placeholder={t("chat.composerPlaceholder")}
-      plusMenuMode="full"
-      attachmentsEnabled
-      voiceEnabled
-      onVoiceChatStart={onVoiceChatStart}
-      onSubmit={async (text, files, references, options) => {
-        const uploadedAttachments = files.length
-          ? await control.uploadFiles(
-              files.map((file) => ({
-                name: file.name,
-                mediaType: file.type || "application/octet-stream",
-                size: file.size,
-                body: file,
-              })),
-            )
-          : [];
-        onSubmit(
-          text,
-          chatHandoffComposerOptions(options, {
-            references,
-            ...(uploadedAttachments.length ? { uploadedAttachments } : {}),
-          }),
-          options.onLocalSubmit,
-        );
-      }}
-    />
+    <div ref={fileStorageAnchorRef} className="relative w-full min-w-0">
+      <FileStorageSetupPopover
+        open={fileStoragePromptOpen && !fileStorageConfigured}
+        onOpenChange={setFileStoragePromptOpen}
+        onConnected={() => void fileUploadStatus.refetch()}
+        anchorRef={fileStorageAnchorRef}
+        {...(fileStorageMissing
+          ? { status: "missing" as const }
+          : {
+              status: "unavailable" as const,
+              onRetry: () => void fileUploadStatus.refetch(),
+            })}
+      />
+      <AgentKitComposer
+        threadId={threadId}
+        requireAgentEngine
+        placeholder={t("chat.composerPlaceholder")}
+        plusMenuMode="full"
+        attachmentsEnabled={fileStorageConfigured}
+        onAttachmentRequest={() => {
+          if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+          }
+          setFileStoragePromptOpen(true);
+        }}
+        voiceEnabled
+        onVoiceChatStart={onVoiceChatStart}
+        onSubmit={async (text, files, references, options) => {
+          const uploadedAttachments = files.length
+            ? await control.uploadFiles(
+                files.map((file) => ({
+                  name: file.name,
+                  mediaType: file.type || "application/octet-stream",
+                  size: file.size,
+                  body: file,
+                })),
+              )
+            : [];
+          onSubmit(
+            text,
+            chatHandoffComposerOptions(options, {
+              references,
+              ...(uploadedAttachments.length ? { uploadedAttachments } : {}),
+            }),
+            options.onLocalSubmit,
+          );
+        }}
+      />
+    </div>
   );
 }
 
