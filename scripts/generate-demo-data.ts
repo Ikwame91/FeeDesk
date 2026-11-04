@@ -34,11 +34,11 @@ function rand(): number {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 const int = (min: number, max: number) => min + Math.floor(rand() * (max - min + 1));
-const pick = <T>(arr: readonly T[]): T => arr[Math.floor(rand() * arr.length)];
+const pick = <T>(arr: readonly T[]): T => arr[Math.floor(rand() * arr.length)]!;
 function shuffle<T>(arr: T[]): T[] {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+    [arr[i], arr[j]] = [arr[j]!, arr[i]!];
   }
   return arr;
 }
@@ -174,8 +174,8 @@ while (counts.reduce((a, b) => a + b, 0) !== TOTAL_REAL_PAYMENTS) {
   const total = counts.reduce((a, b) => a + b, 0);
   const i = int(0, students.length - 1);
   const [lo, hi] = bounds(i);
-  if (total < TOTAL_REAL_PAYMENTS && counts[i] < hi) counts[i]++;
-  if (total > TOTAL_REAL_PAYMENTS && counts[i] > lo) counts[i]--;
+  if (total < TOTAL_REAL_PAYMENTS && counts[i]! < hi!) counts[i]!++;
+  if (total > TOTAL_REAL_PAYMENTS && counts[i]! > lo!) counts[i]!--;
 }
 
 /** Split `total` (pesewas, multiple of GHS 10) into k installments of at least GHS 100. */
@@ -203,12 +203,12 @@ students.forEach((s, i) => {
     if (noMoneyStudentIdx.includes(i)) noMoneyAmounts.set(s.id, shortBy);
   }
   const days = shuffle([...SCHOOL_DAYS]).slice(0, counts[i]).sort((a, b) => +a - +b);
-  split(paidTotal, counts[i]).forEach((amount, j) => {
+  split(paidTotal, counts[i]!).forEach((amount, j) => {
     payments.push({
       id: payments.length,
       studentId: s.id,
       amount,
-      date: iso(days[j]),
+      date: iso(days[j]!),
       method: "momo",
       category: "clean_momo",
     });
@@ -249,7 +249,7 @@ const takeEarly = (n: number, category: Category, method: Payment["method"], dat
   return chosen;
 };
 
-sameDayCashDays.forEach((d, g) => takeEarly(SAME_DAY_GROUPS[g], "cash_same_day", "cash", iso(d)));
+sameDayCashDays.forEach((d, g) => takeEarly(SAME_DAY_GROUPS[g]!, "cash_same_day", "cash", iso(d)));
 takeEarly(3, "cash_banked_monday", "cash", iso(mondayFriday));
 const typoPayments = takeEarly(4, "amount_typo", "momo");
 takeEarly(3, "no_receipt", "momo");
@@ -260,10 +260,10 @@ function typo(amount: number): number {
   const digits = cedis.split("");
   for (let i = digits.length - 2; i >= 0; i--) {
     if (digits[i] !== digits[i + 1]) {
-      [digits[i], digits[i + 1]] = [digits[i + 1], digits[i]];
+      [digits[i], digits[i + 1]] = [digits[i + 1]!, digits[i]!];
       const swapped = Number(digits.join(""));
       if (swapped >= 50 && !digits.join("").startsWith("0")) return ghs(swapped);
-      [digits[i], digits[i + 1]] = [digits[i + 1], digits[i]];
+      [digits[i], digits[i + 1]] = [digits[i + 1]!, digits[i]!];
     }
   }
   return amount + ghs(50);
@@ -317,7 +317,7 @@ for (const orig of dupOriginals) {
 }
 
 // No money: one "MoMo" receipt with no MoMo line, one cash receipt that was never banked.
-const [nmMomoStudent, nmCashStudent] = noMoneyStudentIdx.map((i) => students[i]);
+const [nmMomoStudent, nmCashStudent] = noMoneyStudentIdx.map((i) => students[i]!) as [Student, Student];
 const nmMomoDate = iso(pick(SCHOOL_DAYS.filter((d) => iso(d) < SPECIALS_BEFORE)));
 drafts.push({
   date: nmMomoDate,
@@ -328,7 +328,7 @@ drafts.push({
   paymentId: null,
   sortKey: `${nmMomoDate}-${rand().toFixed(6)}`,
 });
-const nmCashDate = iso(sameDayCashDays[0]); // the day with 3 banked cash receipts
+const nmCashDate = iso(sameDayCashDays[0]!); // the day with 3 banked cash receipts
 drafts.push({
   date: nmCashDate,
   studentId: nmCashStudent.id,
@@ -383,6 +383,16 @@ const REFERENCES = [
   (s: Student) => `${s.name.split(" ")[0]} ${s.className.replace(" ", "")}`,
 ];
 
+/**
+ * Typo payments always name the student in the reference, so the receipt and the money
+ * are linked by name and phone, not just the date. (The draw still happens so the
+ * random sequence, and every other row, stays the same.)
+ */
+function referenceFor(p: Payment, s: Student): string {
+  const drawn = pick(REFERENCES)(s);
+  return p.category === "amount_typo" ? `${s.name} fees` : drawn;
+}
+
 const momoLines: MomoLine[] = payments
   .filter((p) => p.method === "momo")
   .map((p) => {
@@ -397,7 +407,7 @@ const momoLines: MomoLine[] = payments
       payerName,
       payerPhone: s.parentPhone,
       amount: p.amount,
-      reference: pick(REFERENCES)(s),
+      reference: referenceFor(p, s),
       paymentId: p.id,
     };
   })
@@ -409,7 +419,7 @@ for (const d of sameDayCashDays) {
   bankLines.push({
     date: iso(d),
     description: `CASH DEPOSIT - ${SCHOOL.toUpperCase()} FEES`,
-    reference: `DEP${iso(d).replaceAll("-", "")}`,
+    reference: `DEP${iso(d).replace(/-/g, "")}`,
     credit: covered.reduce((a, p) => a + p.amount, 0),
     coversPaymentIds: covered.map((p) => p.id),
   });
@@ -418,7 +428,7 @@ const fridayCash = payments.filter((p) => p.category === "cash_banked_monday");
 bankLines.push({
   date: iso(mondayDeposit),
   description: `CASH DEPOSIT - ${SCHOOL.toUpperCase()} FEES`,
-  reference: `DEP${iso(mondayDeposit).replaceAll("-", "")}`,
+  reference: `DEP${iso(mondayDeposit).replace(/-/g, "")}`,
   credit: fridayCash.reduce((a, p) => a + p.amount, 0),
   coversPaymentIds: fridayCash.map((p) => p.id),
 });
@@ -440,8 +450,17 @@ assert(new Set(receipts.map((r) => r.receiptNo)).size === receipts.length, "uniq
 assert(new Set(momoLines.map((m) => m.txnId)).size === momoLines.length, "unique MoMo txn IDs");
 
 for (const r of receipts.filter((r) => r.case === "amount_typo")) {
-  const real = payments[r.paymentId!].amount;
+  const real = payments[r.paymentId!]!.amount;
   assert(r.amount !== real, `typo receipt ${r.receiptNo} differs from the money`);
+}
+
+for (const r of receipts.filter((r) => r.case === "amount_typo")) {
+  const line = momoLines.find((m) => m.paymentId === r.paymentId)!;
+  const s = studentOf(r.studentId);
+  assert(
+    line.reference.includes(s.name) && line.payerPhone === s.parentPhone,
+    `typo receipt ${r.receiptNo} is linked to its MoMo line by student name and parent phone`,
+  );
 }
 
 const photo = receipts.filter((r) => r.photoPage);
@@ -455,7 +474,7 @@ assert(new Set(momoKeys).size === momoKeys.length, "MoMo lines are distinguishab
 // Cash: each deposit equals its receipts, and on the "never banked" day only the
 // three real receipts add up to the deposit (so the missing one is identifiable).
 for (const b of bankLines) {
-  const sum = b.coversPaymentIds.reduce((a, id) => a + payments[id].amount, 0);
+  const sum = b.coversPaymentIds.reduce((a, id) => a + payments[id]!.amount, 0);
   assert(sum === b.credit, `deposit ${b.reference} equals its receipts`);
 }
 const nmDayCash = receipts.filter((r) => r.date === nmCashDate && r.method === "cash");
@@ -488,7 +507,7 @@ const csv = (rows: (string | number)[][]) =>
       row
         .map((v) => {
           const s = String(v);
-          return /[",\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
+          return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
         })
         .join(","),
     )
@@ -575,7 +594,7 @@ write(
         case: r.case,
         expected: EXPECTED[r.case],
         money: moneyRef(r.paymentId),
-        ...(r.case === "amount_typo" ? { true_amount_ghs: fmt(payments[r.paymentId!].amount) } : {}),
+        ...(r.case === "amount_typo" ? { true_amount_ghs: fmt(payments[r.paymentId!]!.amount) } : {}),
         ...(r.duplicateOf ? { duplicate_of: r.duplicateOf } : {}),
         ...(r.photoPage ? { photo_page: true } : {}),
       })),
@@ -612,7 +631,7 @@ write(
       const s = studentOf(r.studentId);
       const [y, m, d] = r.date.split("-");
       const amt = Number(fmt(r.amount)).toLocaleString("en-GH", { minimumFractionDigits: 2 });
-      return `| ${r.receiptNo} | ${d}/${m}/${y.slice(2)} | ${s.name} | ${s.className} | ${amt} | ${r.method === "momo" ? "MoMo" : "Cash"} |`;
+      return `| ${r.receiptNo} | ${d}/${m}/${y!.slice(2)} | ${s.name} | ${s.className} | ${amt} | ${r.method === "momo" ? "MoMo" : "Cash"} |`;
     }),
     "",
   ].join("\n"),
