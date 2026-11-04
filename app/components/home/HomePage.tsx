@@ -126,8 +126,8 @@ function HomeAgentComposerInput({
       threadId={threadId}
       requireAgentEngine
       placeholder={t("chat.composerPlaceholder")}
-      plusMenuMode="hidden"
-      attachmentsEnabled={false}
+      plusMenuMode="full"
+      attachmentsEnabled
       voiceEnabled
       onVoiceChatStart={onVoiceChatStart}
       onSubmit={async (text, files, references, options) => {
