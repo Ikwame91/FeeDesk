@@ -9,6 +9,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 import addReceipt from "../actions/add-receipt";
 import importStatement from "../actions/import-statement";
 import importStudents from "../actions/import-students";
+import listReceipts from "../actions/list-receipts";
+import listStudents from "../actions/list-students";
 import { getDb, schema } from "../server/db/index";
 import { FEEDESK_MIGRATIONS } from "../server/plugins/db";
 
@@ -56,5 +58,52 @@ describe("import actions convert GHS to integer pesewas", () => {
     expect(r.amountPesewas).toBe(45050);
     expect(r.studentId).toBe("T001");
     await expect(addReceipt.run(input, ctx as never)).rejects.toThrow(/already recorded/);
+  });
+});
+
+const isoDaysFromToday = (days: number) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+const base = { studentId: "T001", method: "cash" as const, source: "typed" as const };
+
+/** The action's failure code, or "ok". */
+async function outcome(p: Promise<unknown>) {
+  try {
+    await p;
+    return "ok";
+  } catch (e) {
+    return (e as { errorCode?: string }).errorCode ?? `raw: ${(e as Error).message}`;
+  }
+}
+
+describe("add-receipt rules (through the action)", () => {
+  it("1. GHS 99,999,999 is a friendly bad_amount, not a database crash", async () => {
+    const r = await outcome(addReceipt.run({ ...base, receiptNo: "9100", date: isoDaysFromToday(0), amountGhs: "99999999" }, ctx as never));
+    expect(r).toBe("bad_amount");
+    expect(await outcome(addReceipt.run({ ...base, receiptNo: "9101", date: isoDaysFromToday(0), amountGhs: "100000.00" }, ctx as never))).toBe("ok");
+  });
+
+  it("2. 01120 and 1120 are the same receipt", async () => {
+    const first = await addReceipt.run({ ...base, receiptNo: " 01120 ", date: isoDaysFromToday(0), amountGhs: "10" }, ctx as never);
+    expect(first.receiptNo).toBe("1120");
+    expect(await outcome(addReceipt.run({ ...base, receiptNo: "1120", date: isoDaysFromToday(0), amountGhs: "10" }, ctx as never))).toBe(
+      "duplicate_receipt_no",
+    );
+  });
+
+  it("3. rejects future dates and dates more than a year back", async () => {
+    expect(await outcome(addReceipt.run({ ...base, receiptNo: "9200", date: isoDaysFromToday(1), amountGhs: "10" }, ctx as never))).toBe("bad_date");
+    expect(await outcome(addReceipt.run({ ...base, receiptNo: "9201", date: isoDaysFromToday(-400), amountGhs: "10" }, ctx as never))).toBe("bad_date");
+    expect(await outcome(addReceipt.run({ ...base, receiptNo: "9202", date: isoDaysFromToday(-300), amountGhs: "10" }, ctx as never))).toBe("ok");
+  });
+
+  it("4. a class that doesn't match the fee list is saved with a warning", async () => {
+    const r = await addReceipt.run({ ...base, receiptNo: "9300", date: isoDaysFromToday(0), amountGhs: "10", className: "Basic 2" }, ctx as never);
+    expect(r.warnings[0]).toMatch(/Receipt says Basic 2, but Test Pupil is in JHS 1/);
+    const ok = await addReceipt.run({ ...base, receiptNo: "9301", date: isoDaysFromToday(0), amountGhs: "10", className: "jhs1" }, ctx as never);
+    expect(ok.warnings).toEqual([]);
+  });
+
+  it("5. list actions refuse callers who are not signed in", async () => {
+    expect(await outcome(listStudents.run({}, {} as never))).toBe("not_signed_in");
+    expect(await outcome(listReceipts.run({ limit: 5 }, undefined))).toBe("not_signed_in");
   });
 });

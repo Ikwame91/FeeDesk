@@ -4,6 +4,12 @@
  */
 import { parseCsvRecords } from "./csv.js";
 import { ghsToPesewas } from "./money.js";
+import { checkReceiptAmount, MAX_MONEY_LINE_PESEWAS, MAX_RECEIPT_PESEWAS, normaliseReceiptNo } from "./receipt-rules.js";
+
+function capped(pesewas: number, max: number, label: string): number {
+  if (pesewas > max) throw new Error(`${label} is over the GHS ${(max / 100).toLocaleString("en-US")} limit`);
+  return pesewas;
+}
 
 export interface StudentRow {
   id: string;
@@ -104,7 +110,7 @@ export function parseStudentsCsv(text: string): StudentRow[] {
     id: required(r, c.id, "student_id"),
     name: required(r, c.name, "full_name"),
     className: required(r, c.cls, "class"),
-    termFeePesewas: ghsToPesewas(required(r, c.fee, "term_fee_ghs")),
+    termFeePesewas: capped(ghsToPesewas(required(r, c.fee, "term_fee_ghs")), MAX_RECEIPT_PESEWAS, "term fee"),
     parentName: required(r, c.parent, "parent_name"),
     parentPhone: normalisePhone(required(r, c.phone, "parent_phone")),
   }));
@@ -125,7 +131,7 @@ export function parseMomoCsv(text: string): MoneyLineRow[] {
   return collect(records, (r) => {
     if (status && r[status] && r[status].toUpperCase() !== "SUCCESSFUL") return null;
     const [d, t] = required(r, c.when, "Date/Time").split(/[ T]/);
-    const amountPesewas = ghsToPesewas(required(r, c.amount, "Amount (GHS)"));
+    const amountPesewas = capped(ghsToPesewas(required(r, c.amount, "Amount (GHS)")), MAX_MONEY_LINE_PESEWAS, "amount");
     if (amountPesewas <= 0) throw new Error("amount must be more than 0");
     return {
       source: "momo",
@@ -152,7 +158,7 @@ export function parseBankCsv(text: string): MoneyLineRow[] {
   return collect(records, (r) => {
     const credit = r[c.credit];
     if (!credit) return null; // a debit line
-    const amountPesewas = ghsToPesewas(credit);
+    const amountPesewas = capped(ghsToPesewas(credit), MAX_MONEY_LINE_PESEWAS, "credit");
     if (amountPesewas <= 0) return null;
     return {
       source: "bank",
@@ -180,10 +186,9 @@ export function parseReceiptsCsv(text: string): ReceiptRow[] {
   return collect(records, (r) => {
     const method = required(r, c.method, "method").toLowerCase();
     if (method !== "cash" && method !== "momo") throw new Error(`method "${method}" must be cash or momo`);
-    const amountPesewas = ghsToPesewas(required(r, c.amount, "amount_ghs"));
-    if (amountPesewas <= 0) throw new Error("amount must be more than 0");
+    const amountPesewas = checkReceiptAmount(ghsToPesewas(required(r, c.amount, "amount_ghs")));
     return {
-      receiptNo: required(r, c.no, "receipt_no"),
+      receiptNo: normaliseReceiptNo(required(r, c.no, "receipt_no")),
       date: date(required(r, c.date, "date")),
       studentId: required(r, c.student, "student_id"),
       amountPesewas,

@@ -6,6 +6,7 @@ import { eq, inArray, sql } from "drizzle-orm";
 
 import { getDb, schema } from "../db/index.js";
 import type { MoneyLineRow, ReceiptRow, StudentRow } from "./importers.js";
+import { checkReceiptAmount, checkReceiptDate, normaliseReceiptNo } from "./receipt-rules.js";
 
 type Db = ReturnType<typeof getDb>;
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
@@ -95,11 +96,23 @@ async function checkReceipts(tx: Tx | Db, rows: ReceiptRow[]) {
   }
 }
 
+/**
+ * The single way receipts enter the database. Applies the receipt rules (amount cap,
+ * date window, receipt-number normalising) before anything is written; throws
+ * ReceiptRuleError or LedgerError and writes nothing when any row fails.
+ */
 export async function addReceipts(
-  rows: ReceiptRow[],
+  input: ReceiptRow[],
   source: "photo" | "upload" | "typed",
   ownerEmail: string,
+  options: { today?: string } = {},
 ) {
+  const rows = input.map((r) => ({
+    ...r,
+    receiptNo: normaliseReceiptNo(r.receiptNo),
+    amountPesewas: checkReceiptAmount(r.amountPesewas),
+    date: checkReceiptDate(r.date, options.today),
+  }));
   const db = getDb();
   return db.transaction(async (tx) => {
     await checkReceipts(tx, rows);

@@ -1,4 +1,4 @@
-import { defineAction } from "@agent-native/core/action";
+import { defineAction, fail } from "@agent-native/core/action";
 import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
@@ -30,7 +30,8 @@ export default defineAction({
   }),
   http: { method: "GET" },
   readOnly: true,
-  run: async ({ limit }) => {
+  run: async ({ limit }, ctx) => {
+    if (!ctx?.userEmail) fail("Sign in to see receipts.", { errorCode: "not_signed_in", statusCode: 401 });
     const { receipts: r, students: s, moneyLines: m } = schema;
     const db = getDb();
     const rows = await db

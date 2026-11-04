@@ -1,4 +1,4 @@
-import { defineAction } from "@agent-native/core/action";
+import { defineAction, fail } from "@agent-native/core/action";
 import { asc } from "drizzle-orm";
 import { z } from "zod";
 
@@ -22,7 +22,8 @@ export default defineAction({
   }),
   http: { method: "GET" },
   readOnly: true,
-  run: async () => {
+  run: async (_args, ctx) => {
+    if (!ctx?.userEmail) fail("Sign in to see the fee list.", { errorCode: "not_signed_in", statusCode: 401 });
     const s = schema.students;
     const rows = await getDb()
       .select({
