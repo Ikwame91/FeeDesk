@@ -1,6 +1,6 @@
 {
   "name": "feedesk",
-  "displayName": "Feedesk",
+  "displayName": "FeeDesk",
   "private": true,
   "description": "Workspace app for Feedesk.",
   "type": "module",
@@ -14,7 +14,8 @@
     "script": "agent-native script",
     "test": "vitest --run --passWithNoTests",
     "agent-native:doctor": "agent-native doctor",
-    "demo:generate": "tsx scripts/generate-demo-data.ts"
+    "demo:generate": "tsx scripts/generate-demo-data.ts",
+    "demo:load": "agent-native action load-demo-data"
   },
   "dependencies": {
     "@agent-native/agentkit": "^0.223.0",

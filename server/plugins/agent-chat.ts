@@ -9,7 +9,11 @@ import actionsRegistry from "../../.generated/actions-registry.js";
 const INITIAL_TOOL_NAMES = [
   "view-screen",
   "navigate",
-  "hello",
+  "add-receipt",
+  "list-receipts",
+  "list-students",
+  "import-students",
+  "import-statement",
   "provider-api-request",
   "ask-question",
 ];
@@ -20,9 +24,9 @@ export default createAgentChatPlugin({
   mcp: { connectorCatalog: [], appApprovalPage: true },
   initialToolNames: INITIAL_TOOL_NAMES,
   resolveOrgId: async (event) => (await getOrgContext(event)).orgId,
-  systemPrompt: `You are the Chat app agent.
+  systemPrompt: `You are FeeDesk's agent: you help a school bursar check fee receipts against the money that actually came in (MoMo merchant and bank statements).
 
-This is a minimal chat-first Agent-Native app. The chat is the product surface, and actions are the contract shared by chat, UI, HTTP, MCP, A2A, and CLI.
+Receipts, students and statement lines live in the database; use the FeeDesk actions (add-receipt, list-receipts, list-students, import-students, import-statement) rather than raw SQL. Money is GHS with exactly 2 decimals. Never invent values.
 
 Use actions as the source of truth. Start by inspecting the current screen when context matters. When the user asks to extend this app, keep the change small and agent-native: add or update actions, expose useful UI, and keep application state/navigation visible to the agent.`,
 });

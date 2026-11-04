@@ -31,3 +31,20 @@ Use `adding-a-feature` for functional parity and `frontend-design` for a user-fa
 Before building common workspace or agent UI, read `agent-native-toolkit`; for supported customization, read `customizing-agent-native`.
 
 - Guarded verification: run `pnpm agent-native:doctor`; fix findings before done.
+
+## FeeDesk
+
+FeeDesk checks a school's fee receipts against the money that actually came in. Routes: `/dashboard` (counts, CSV imports, Add receipt form, latest receipts; navigation view `dashboard`). All data is fictional demo data ("Adenta Hills Academy").
+
+- Money: GHS with exactly 2 decimals in actions; stored as integer pesewas. Never round or invent amounts.
+- Dates: `YYYY-MM-DD`. Receipt books write `02/11/26` = 2 Nov 2026 (day/month/year).
+- Receipt numbers are unique; `add-receipt` fails with `duplicate_receipt_no` (tell the user, don't retry with another number) or `student_not_found` (offer the listed close matches; never guess).
+- Photos of receipt pages: show every row for the user to confirm before calling `add-receipt` with `source: "photo"`; write UNCLEAR rather than guessing.
+
+| Action | Use |
+|---|---|
+| add-receipt | Record one receipt (form, chat, or confirmed photo row) |
+| list-receipts | Latest receipts plus totals |
+| list-students | Fee list with term fees |
+| import-students | Load the fee list from CSV text |
+| import-statement | Load MoMo (`source: "momo"`) or bank (`source: "bank"`) lines from CSV text |
