@@ -48,3 +48,13 @@ If it can't, fall back to typing + CSV (cut-list item 4).
   drop photo capture and use typing + CSV.
 
 Record the result here (date, model, what was misread).
+
+## Result — 4 Nov 2026: PASS
+
+- Ran in Builder.io (Builder-connected model, "Auto"), photo attached in chat.
+- Page: handwritten, photo rotated 90°, table split across two pages of the book, old writing
+  showing through the paper.
+- 5 of 5 rows found. 29 of 30 fields exact. 0 wrong values.
+- The one miss: student name on 1045 ("Abena Darko") returned as UNCLEAR, which is the
+  behaviour we want (no guessing).
+- Decision: keep photo → editable rows → confirm as the demo hero.
