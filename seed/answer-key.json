@@ -1,0 +1,1167 @@
+{
+  "note": "Expected outcomes for the demo data. For tuning only; the agent must never read this file.",
+  "end_state": {
+    "receipts": 120,
+    "verified": 118,
+    "flagged": 2,
+    "students_owing": 12
+  },
+  "receipts": [
+    {
+      "receipt_no": 1001,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "12612444402"
+      }
+    },
+    {
+      "receipt_no": 1002,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "94336846938"
+      }
+    },
+    {
+      "receipt_no": 1003,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "37675432139"
+      }
+    },
+    {
+      "receipt_no": 1004,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "98155391006"
+      }
+    },
+    {
+      "receipt_no": 1005,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "63682418288"
+      }
+    },
+    {
+      "receipt_no": 1006,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "75940657262"
+      }
+    },
+    {
+      "receipt_no": 1007,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "93156682620"
+      }
+    },
+    {
+      "receipt_no": 1008,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "32250105731"
+      }
+    },
+    {
+      "receipt_no": 1009,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "79027087036"
+      }
+    },
+    {
+      "receipt_no": 1010,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "65300349586"
+      }
+    },
+    {
+      "receipt_no": 1011,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "21979359791"
+      }
+    },
+    {
+      "receipt_no": 1012,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "92577464738"
+      }
+    },
+    {
+      "receipt_no": 1013,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "33554170231"
+      }
+    },
+    {
+      "receipt_no": 1014,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "63299919588"
+      }
+    },
+    {
+      "receipt_no": 1015,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "38511193087"
+      }
+    },
+    {
+      "receipt_no": 1016,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "85831796363"
+      }
+    },
+    {
+      "receipt_no": 1017,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "76203326703"
+      }
+    },
+    {
+      "receipt_no": 1018,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "31019017894"
+      }
+    },
+    {
+      "receipt_no": 1019,
+      "case": "no_money_cash",
+      "expected": "flag_no_money_real_problem",
+      "money": null
+    },
+    {
+      "receipt_no": 1020,
+      "case": "cash_same_day",
+      "expected": "match_bank_deposit",
+      "money": {
+        "source": "bank",
+        "reference": "DEP20260917"
+      }
+    },
+    {
+      "receipt_no": 1021,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "98354126454"
+      }
+    },
+    {
+      "receipt_no": 1022,
+      "case": "cash_same_day",
+      "expected": "match_bank_deposit",
+      "money": {
+        "source": "bank",
+        "reference": "DEP20260917"
+      }
+    },
+    {
+      "receipt_no": 1023,
+      "case": "duplicate",
+      "expected": "flag_duplicate_then_voided",
+      "money": {
+        "source": "momo",
+        "txn_id": "31019017894"
+      },
+      "duplicate_of": 1018
+    },
+    {
+      "receipt_no": 1024,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "29513295909"
+      }
+    },
+    {
+      "receipt_no": 1025,
+      "case": "cash_same_day",
+      "expected": "match_bank_deposit",
+      "money": {
+        "source": "bank",
+        "reference": "DEP20260917"
+      }
+    },
+    {
+      "receipt_no": 1026,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "34072299441"
+      }
+    },
+    {
+      "receipt_no": 1027,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "22429701616"
+      }
+    },
+    {
+      "receipt_no": 1028,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "31205371217"
+      }
+    },
+    {
+      "receipt_no": 1029,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "89040335044"
+      }
+    },
+    {
+      "receipt_no": 1030,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "43981462568"
+      }
+    },
+    {
+      "receipt_no": 1031,
+      "case": "amount_typo",
+      "expected": "flag_amount_diff_then_corrected",
+      "money": {
+        "source": "momo",
+        "txn_id": "29590757645"
+      },
+      "true_amount_ghs": "470.00"
+    },
+    {
+      "receipt_no": 1032,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "25875586227"
+      }
+    },
+    {
+      "receipt_no": 1033,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "56974089448"
+      }
+    },
+    {
+      "receipt_no": 1034,
+      "case": "cash_same_day",
+      "expected": "match_bank_deposit",
+      "money": {
+        "source": "bank",
+        "reference": "DEP20260923"
+      }
+    },
+    {
+      "receipt_no": 1035,
+      "case": "cash_same_day",
+      "expected": "match_bank_deposit",
+      "money": {
+        "source": "bank",
+        "reference": "DEP20260923"
+      }
+    },
+    {
+      "receipt_no": 1036,
+      "case": "cash_same_day",
+      "expected": "match_bank_deposit",
+      "money": {
+        "source": "bank",
+        "reference": "DEP20260924"
+      }
+    },
+    {
+      "receipt_no": 1037,
+      "case": "cash_same_day",
+      "expected": "match_bank_deposit",
+      "money": {
+        "source": "bank",
+        "reference": "DEP20260924"
+      }
+    },
+    {
+      "receipt_no": 1038,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "15155790615"
+      }
+    },
+    {
+      "receipt_no": 1039,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "15425652023"
+      }
+    },
+    {
+      "receipt_no": 1040,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "37190341039"
+      }
+    },
+    {
+      "receipt_no": 1041,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "56871837605"
+      }
+    },
+    {
+      "receipt_no": 1042,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "97924426260"
+      }
+    },
+    {
+      "receipt_no": 1043,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "95385305029"
+      }
+    },
+    {
+      "receipt_no": 1044,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "84451034935"
+      }
+    },
+    {
+      "receipt_no": 1045,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "50321638460"
+      }
+    },
+    {
+      "receipt_no": 1046,
+      "case": "cash_same_day",
+      "expected": "match_bank_deposit",
+      "money": {
+        "source": "bank",
+        "reference": "DEP20260929"
+      }
+    },
+    {
+      "receipt_no": 1047,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "38663557542"
+      }
+    },
+    {
+      "receipt_no": 1048,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "79078378018"
+      }
+    },
+    {
+      "receipt_no": 1049,
+      "case": "cash_same_day",
+      "expected": "match_bank_deposit",
+      "money": {
+        "source": "bank",
+        "reference": "DEP20260929"
+      }
+    },
+    {
+      "receipt_no": 1050,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "89718881978"
+      }
+    },
+    {
+      "receipt_no": 1051,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "86316456634"
+      }
+    },
+    {
+      "receipt_no": 1052,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "90550339804"
+      }
+    },
+    {
+      "receipt_no": 1053,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "43016390751"
+      }
+    },
+    {
+      "receipt_no": 1054,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "64364371187"
+      }
+    },
+    {
+      "receipt_no": 1055,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "64534905198"
+      }
+    },
+    {
+      "receipt_no": 1056,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "41578291929"
+      }
+    },
+    {
+      "receipt_no": 1057,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "27091657088"
+      }
+    },
+    {
+      "receipt_no": 1058,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "20963585989"
+      }
+    },
+    {
+      "receipt_no": 1059,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "69336654492"
+      }
+    },
+    {
+      "receipt_no": 1060,
+      "case": "cash_same_day",
+      "expected": "match_bank_deposit",
+      "money": {
+        "source": "bank",
+        "reference": "DEP20261006"
+      }
+    },
+    {
+      "receipt_no": 1061,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "27153546987"
+      }
+    },
+    {
+      "receipt_no": 1062,
+      "case": "cash_same_day",
+      "expected": "match_bank_deposit",
+      "money": {
+        "source": "bank",
+        "reference": "DEP20261006"
+      }
+    },
+    {
+      "receipt_no": 1063,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "62417337810"
+      }
+    },
+    {
+      "receipt_no": 1064,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "44553915646"
+      }
+    },
+    {
+      "receipt_no": 1065,
+      "case": "no_money_momo",
+      "expected": "flag_no_money_real_problem",
+      "money": null
+    },
+    {
+      "receipt_no": 1066,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "63695173973"
+      }
+    },
+    {
+      "receipt_no": 1067,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "10051101048"
+      }
+    },
+    {
+      "receipt_no": 1068,
+      "case": "amount_typo",
+      "expected": "flag_amount_diff_then_corrected",
+      "money": {
+        "source": "momo",
+        "txn_id": "64816200381"
+      },
+      "true_amount_ghs": "230.00"
+    },
+    {
+      "receipt_no": 1069,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "42399034728"
+      }
+    },
+    {
+      "receipt_no": 1070,
+      "case": "cash_banked_monday",
+      "expected": "flag_no_money_then_resolved_banked_together",
+      "money": {
+        "source": "bank",
+        "reference": "DEP20261012"
+      }
+    },
+    {
+      "receipt_no": 1071,
+      "case": "cash_banked_monday",
+      "expected": "flag_no_money_then_resolved_banked_together",
+      "money": {
+        "source": "bank",
+        "reference": "DEP20261012"
+      }
+    },
+    {
+      "receipt_no": 1072,
+      "case": "cash_banked_monday",
+      "expected": "flag_no_money_then_resolved_banked_together",
+      "money": {
+        "source": "bank",
+        "reference": "DEP20261012"
+      }
+    },
+    {
+      "receipt_no": 1073,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "36924103379"
+      }
+    },
+    {
+      "receipt_no": 1074,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "89445636377"
+      }
+    },
+    {
+      "receipt_no": 1075,
+      "case": "amount_typo",
+      "expected": "flag_amount_diff_then_corrected",
+      "money": {
+        "source": "momo",
+        "txn_id": "41259864035"
+      },
+      "true_amount_ghs": "200.00"
+    },
+    {
+      "receipt_no": 1076,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "10371971994"
+      }
+    },
+    {
+      "receipt_no": 1077,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "78838530068"
+      }
+    },
+    {
+      "receipt_no": 1078,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "13835983162"
+      }
+    },
+    {
+      "receipt_no": 1079,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "90875388688"
+      }
+    },
+    {
+      "receipt_no": 1080,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "38033219585"
+      }
+    },
+    {
+      "receipt_no": 1081,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "15478930647"
+      }
+    },
+    {
+      "receipt_no": 1082,
+      "case": "amount_typo",
+      "expected": "flag_amount_diff_then_corrected",
+      "money": {
+        "source": "momo",
+        "txn_id": "83047105695"
+      },
+      "true_amount_ghs": "400.00"
+    },
+    {
+      "receipt_no": 1083,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "51369774916"
+      }
+    },
+    {
+      "receipt_no": 1084,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "20123731759"
+      }
+    },
+    {
+      "receipt_no": 1085,
+      "case": "cash_same_day",
+      "expected": "match_bank_deposit",
+      "money": {
+        "source": "bank",
+        "reference": "DEP20261015"
+      }
+    },
+    {
+      "receipt_no": 1086,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "75785204893"
+      }
+    },
+    {
+      "receipt_no": 1087,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "20991092754"
+      }
+    },
+    {
+      "receipt_no": 1088,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "18547527461"
+      }
+    },
+    {
+      "receipt_no": 1089,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "76462544561"
+      }
+    },
+    {
+      "receipt_no": 1090,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "27319239673"
+      }
+    },
+    {
+      "receipt_no": 1091,
+      "case": "duplicate",
+      "expected": "flag_duplicate_then_voided",
+      "money": {
+        "source": "momo",
+        "txn_id": "27319239673"
+      },
+      "duplicate_of": 1090
+    },
+    {
+      "receipt_no": 1092,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "12466252988"
+      }
+    },
+    {
+      "receipt_no": 1093,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "62827044315"
+      }
+    },
+    {
+      "receipt_no": 1094,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "73771776156"
+      }
+    },
+    {
+      "receipt_no": 1095,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "38013649643"
+      }
+    },
+    {
+      "receipt_no": 1096,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "79243635328"
+      }
+    },
+    {
+      "receipt_no": 1097,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "82985518362"
+      }
+    },
+    {
+      "receipt_no": 1098,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "99886614894"
+      }
+    },
+    {
+      "receipt_no": 1099,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "81926904632"
+      }
+    },
+    {
+      "receipt_no": 1100,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "38537161564"
+      }
+    },
+    {
+      "receipt_no": 1101,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "58185925877"
+      }
+    },
+    {
+      "receipt_no": 1102,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "14606714120"
+      }
+    },
+    {
+      "receipt_no": 1103,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "80009753305"
+      }
+    },
+    {
+      "receipt_no": 1104,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "71238577703"
+      }
+    },
+    {
+      "receipt_no": 1105,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "79962943079"
+      }
+    },
+    {
+      "receipt_no": 1106,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "73138168104"
+      }
+    },
+    {
+      "receipt_no": 1107,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "41805763747"
+      }
+    },
+    {
+      "receipt_no": 1108,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "97504134082"
+      }
+    },
+    {
+      "receipt_no": 1109,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "78400761685"
+      }
+    },
+    {
+      "receipt_no": 1110,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "41585103608"
+      }
+    },
+    {
+      "receipt_no": 1111,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "74129655426"
+      }
+    },
+    {
+      "receipt_no": 1112,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "63163439636"
+      }
+    },
+    {
+      "receipt_no": 1113,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "67421908897"
+      }
+    },
+    {
+      "receipt_no": 1114,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "90733492309"
+      },
+      "photo_page": true
+    },
+    {
+      "receipt_no": 1115,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "75317125285"
+      },
+      "photo_page": true
+    },
+    {
+      "receipt_no": 1116,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "77679159261"
+      },
+      "photo_page": true
+    },
+    {
+      "receipt_no": 1117,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "81276518735"
+      },
+      "photo_page": true
+    },
+    {
+      "receipt_no": 1118,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "39925483092"
+      },
+      "photo_page": true
+    },
+    {
+      "receipt_no": 1119,
+      "case": "clean_momo",
+      "expected": "match",
+      "money": {
+        "source": "momo",
+        "txn_id": "33811836787"
+      },
+      "photo_page": true
+    }
+  ],
+  "money_without_receipt": [
+    {
+      "txn_id": "32881766855",
+      "student_id": "S009",
+      "amount_ghs": "470.00"
+    },
+    {
+      "txn_id": "42882444774",
+      "student_id": "S010",
+      "amount_ghs": "310.00"
+    },
+    {
+      "txn_id": "57950411224",
+      "student_id": "S026",
+      "amount_ghs": "320.00"
+    }
+  ],
+  "students_owing": [
+    {
+      "student_id": "S005",
+      "name": "Prince Badu",
+      "balance_ghs": "550.00"
+    },
+    {
+      "student_id": "S006",
+      "name": "Priscilla Danso",
+      "balance_ghs": "600.00"
+    },
+    {
+      "student_id": "S007",
+      "name": "Gifty Darko",
+      "balance_ghs": "300.00"
+    },
+    {
+      "student_id": "S008",
+      "name": "Selorm Agyeman",
+      "balance_ghs": "600.00"
+    },
+    {
+      "student_id": "S010",
+      "name": "Kweku Agyeman",
+      "balance_ghs": "150.00"
+    },
+    {
+      "student_id": "S012",
+      "name": "Edem Kpodo",
+      "balance_ghs": "250.00"
+    },
+    {
+      "student_id": "S016",
+      "name": "Linda Appiah",
+      "balance_ghs": "550.00"
+    },
+    {
+      "student_id": "S023",
+      "name": "Daniel Asante",
+      "balance_ghs": "350.00"
+    },
+    {
+      "student_id": "S024",
+      "name": "Emmanuel Ansah",
+      "balance_ghs": "600.00"
+    },
+    {
+      "student_id": "S031",
+      "name": "Araba Ansah",
+      "balance_ghs": "300.00"
+    },
+    {
+      "student_id": "S040",
+      "name": "Akua Mensah",
+      "balance_ghs": "300.00"
+    },
+    {
+      "student_id": "S041",
+      "name": "Akua Ofori",
+      "balance_ghs": "450.00"
+    }
+  ]
+}
