@@ -33,11 +33,11 @@ work on the same data.
 Work in progress for the Builder.io Agent-Native Hackathon (Nov 2026).
 
 - [x] App scaffolded and running
-- [ ] Photo test (can the agent read a handwritten receipt page?)
-- [ ] Demo data and seed script
-- [ ] Data tables and actions
-- [ ] Matching and flags
-- [ ] Flags, Students and Reminders screens
+- [x] Photo test passed (29 of 30 fields read from a handwritten page, nothing invented)
+- [x] Demo data and seed script (`pnpm demo:generate`, `pnpm demo:load`)
+- [x] Data tables and actions
+- [x] Matching and flags (Dashboard "Check everything", Flags screen)
+- [ ] Photo capture screen, Students and Reminders screens
 - [ ] Deployed demo
 
 ## Run it locally
@@ -51,7 +51,7 @@ pnpm dev
 ```
 
 Open http://localhost:8080, choose **Continue as local dev**, then connect an AI provider
-under **Connect AI**.
+under **Connect AI**. Load the fictional demo data with `pnpm demo:load`.
 
 ## Built with
 

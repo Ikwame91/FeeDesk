@@ -1,3 +1,35 @@
+# FeeDesk — read this first
+
+FeeDesk helps a school bursar check fee receipts against the money that actually came in (MoMo merchant + bank statements). Everything is fictional demo data (Adenta Hills Academy). Screens: `/dashboard` (view `dashboard`), `/flags` (view `flags`; `flagId` in navigation is the card the bursar selected, so "this one" means that flag).
+
+**Check everything** (the Dashboard button sends this):
+1. `find-candidates` with no receiptNos → review `toRecord` and `toFlag` → `record-match` with toRecord → `raise-flag` with toFlag. Repeat until `done` is true; the last pages flag money with no receipt.
+2. Pass suggestions through unless you have a concrete reason to change one; say why if you do. Never invent a match.
+3. Finish with `get-summary` and reply in 2-3 lines: the headline, what kinds of flags wait on the Flags screen.
+
+**Rules**
+- Every match has a confidence (0-1) and a reason under 20 words naming the evidence. record-match auto-accepts only >= 0.9 with exact amounts; everything else becomes a flag.
+- Cash: a day's cash receipts are covered by a bank deposit that adds up exactly.
+- Flags are neutral: describe the mismatch, never suggest theft or blame anyone.
+- Money is GHS with 2 decimals (stored as pesewas); never round or guess. Dates are YYYY-MM-DD; receipt books write 02/11/26 = 2 Nov 2026.
+- Read the screen (`view-screen`) before acting on "this", "that one", "these".
+
+**Resolving flags in chat** (`list-flags` for ids, then `resolve-flag`): "banked together/separately", "that's the deposit" → `accept_match` (add moneyRef if no proposed match); "typo, correct it" → `fix_amount`; "same payment twice" → `void_duplicate`; "write receipt 1120 for it" → `add_receipt` with receiptNo; "that's a real problem" → `real_problem`. Confirm what changed in one line.
+
+**Receipts**: `add-receipt` (pass className when known; report any warning). Errors: `duplicate_receipt_no` (tell the user, never pick another number), `student_not_found` (offer the listed matches, never guess). Photos of receipt pages: show every row in a table for the user to confirm first, write UNCLEAR rather than guess, then `add-receipt` per row with `source: "photo"`.
+
+| Action | Use |
+|---|---|
+| find-candidates | Next page of match suggestions, or evidence for given receipts |
+| record-match | Save matches (batch) |
+| raise-flag | Flag no_money / no_receipt / duplicate (batch) |
+| resolve-flag | Apply the bursar's decision on one flag |
+| list-flags | Open flags with receipt and money details |
+| get-summary | Verified / flagged / owing headline |
+| add-receipt | Record one receipt |
+| list-receipts, list-students | Read receipts and the fee list |
+| import-students, import-statement | Load CSV text (statement source "momo" or "bank") |
+
 # Chat — Agent Guide
 
 Chat is the minimal chat-first agent-native app. `/` redirects to shared sign-in, then `/home`, the editable Get started page. Chat lives at `/chat`; new chats start there. Actions carry capabilities; screens exist only for durable workflows.
@@ -31,20 +63,3 @@ Use `adding-a-feature` for functional parity and `frontend-design` for a user-fa
 Before building common workspace or agent UI, read `agent-native-toolkit`; for supported customization, read `customizing-agent-native`.
 
 - Guarded verification: run `pnpm agent-native:doctor`; fix findings before done.
-
-## FeeDesk
-
-FeeDesk checks a school's fee receipts against the money that actually came in. Routes: `/dashboard` (counts, CSV imports, Add receipt form, latest receipts; navigation view `dashboard`). All data is fictional demo data ("Adenta Hills Academy").
-
-- Money: GHS with exactly 2 decimals in actions; stored as integer pesewas. Never round or invent amounts.
-- Dates: `YYYY-MM-DD`. Receipt books write `02/11/26` = 2 Nov 2026 (day/month/year).
-- Receipt numbers are unique; `add-receipt` fails with `duplicate_receipt_no` (tell the user, don't retry with another number) or `student_not_found` (offer the listed close matches; never guess).
-- Photos of receipt pages: show every row for the user to confirm before calling `add-receipt` with `source: "photo"`; write UNCLEAR rather than guessing.
-
-| Action | Use |
-|---|---|
-| add-receipt | Record one receipt (form, chat, or confirmed photo row) |
-| list-receipts | Latest receipts plus totals |
-| list-students | Fee list with term fees |
-| import-students | Load the fee list from CSV text |
-| import-statement | Load MoMo (`source: "momo"`) or bank (`source: "bank"`) lines from CSV text |

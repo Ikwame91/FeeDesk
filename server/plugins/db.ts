@@ -68,6 +68,16 @@ CREATE TABLE IF NOT EXISTS flags (
 );
 CREATE INDEX IF NOT EXISTS flags_open_idx ON flags (resolved_at)`,
   },
+  {
+    version: 2,
+    name: "feedesk-proposed-matches",
+    // A low-confidence match is kept as "proposed" and its flag points at it, so
+    // confirming the flag confirms the match. Widening the CHECK is backward compatible.
+    sql: `ALTER TABLE matches DROP CONSTRAINT IF EXISTS matches_state_check;
+ALTER TABLE matches ADD CONSTRAINT matches_state_check CHECK (state IN ('auto', 'accepted', 'rejected', 'proposed'));
+ALTER TABLE flags ADD COLUMN IF NOT EXISTS match_id TEXT;
+CREATE INDEX IF NOT EXISTS matches_money_line_idx ON matches (money_line_id)`,
+  },
 ];
 
 export default runMigrations(FEEDESK_MIGRATIONS, { table: "feedesk_migrations" });

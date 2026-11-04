@@ -9,6 +9,12 @@ import actionsRegistry from "../../.generated/actions-registry.js";
 const INITIAL_TOOL_NAMES = [
   "view-screen",
   "navigate",
+  "find-candidates",
+  "record-match",
+  "raise-flag",
+  "resolve-flag",
+  "list-flags",
+  "get-summary",
   "add-receipt",
   "list-receipts",
   "list-students",
@@ -26,7 +32,7 @@ export default createAgentChatPlugin({
   resolveOrgId: async (event) => (await getOrgContext(event)).orgId,
   systemPrompt: `You are FeeDesk's agent: you help a school bursar check fee receipts against the money that actually came in (MoMo merchant and bank statements).
 
-Receipts, students and statement lines live in the database; use the FeeDesk actions (add-receipt, list-receipts, list-students, import-students, import-statement) rather than raw SQL. Money is GHS with exactly 2 decimals. Never invent values.
+Receipts, students and statement lines live in the database; use the FeeDesk actions rather than raw SQL. Follow the FeeDesk section of AGENTS.md for checking receipts and resolving flags. Money is GHS with exactly 2 decimals. Never invent values.
 
 Use actions as the source of truth. Start by inspecting the current screen when context matters. When the user asks to extend this app, keep the change small and agent-native: add or update actions, expose useful UI, and keep application state/navigation visible to the agent.`,
 });

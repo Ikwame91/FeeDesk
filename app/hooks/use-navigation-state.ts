@@ -18,13 +18,15 @@ export interface NavigationState {
   path?: string;
   publicPath?: string;
   threadId?: string;
+  /** Flags screen: the card the bursar has selected ("this one"). */
+  flagId?: string;
 }
 
 export function useNavigationState() {
   useAgentRouteState<NavigationState>({
     browserTabId: TAB_ID,
     requestSource: TAB_ID,
-    getNavigationState: ({ pathname }) => navigationStateForPath(pathname),
+    getNavigationState: ({ pathname, searchParams }) => navigationStateForPath(pathname, searchParams),
     getCommandPath: commandPathForNavigation,
   });
 }
@@ -62,13 +64,16 @@ function matchesPathPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
-export function navigationStateForPath(pathname: string): NavigationState {
+export function navigationStateForPath(pathname: string, searchParams?: URLSearchParams): NavigationState {
   const threadId = threadIdFromPath(pathname);
+  const view = viewForPath(pathname);
+  const flagId = view === "flags" ? searchParams?.get("flag") : null;
   return {
-    view: viewForPath(pathname),
+    view,
     path: pathname,
     publicPath: appPathFromLocalRoute(pathname),
     ...(threadId ? { threadId } : {}),
+    ...(flagId ? { flagId } : {}),
   };
 }
 
@@ -76,6 +81,7 @@ function viewForPath(pathname: string): string {
   if (isChatPathname(pathname)) return "chat";
   if (pathname === HOME_PATH) return "home";
   if (pathname.startsWith("/dashboard")) return "dashboard";
+  if (pathname.startsWith("/flags")) return "flags";
   if (pathname.startsWith("/database")) return "database";
   if (pathname.startsWith("/extensions")) return "extensions";
   if (pathname.startsWith("/observability")) return "observability";
@@ -96,6 +102,8 @@ function pathForView(view?: string): string {
       return HOME_PATH;
     case "dashboard":
       return "/dashboard";
+    case "flags":
+      return "/flags";
     case "database":
       return "/database";
     case "extensions":
@@ -115,6 +123,9 @@ function pathForView(view?: string): string {
 
 export function pathForCommand(command: any): string {
   const path = pathForView(command?.view);
+  if (command?.view === "flags" && typeof command?.flagId === "string" && command.flagId) {
+    return `/flags?flag=${encodeURIComponent(command.flagId)}`;
+  }
   if (command?.view !== "chat" && command?.view !== "ask") return path;
   const threadId =
     typeof command?.threadId === "string" ? command.threadId.trim() : "";

@@ -61,7 +61,8 @@ export const matches = pgTable("matches", {
   moneyLineId: text("money_line_id").notNull(),
   confidence: real("confidence").notNull(),
   reason: text("reason").notNull(),
-  state: text("state").$type<"auto" | "accepted" | "rejected">().notNull(),
+  // auto: confident (>= 0.9, exact amount) · proposed: waiting on a flag · accepted: bursar confirmed · rejected
+  state: text("state").$type<"auto" | "accepted" | "rejected" | "proposed">().notNull(),
   ownerEmail: text("owner_email").notNull().default("local@localhost"),
   createdAt: text("created_at").notNull().default(sql`now()`),
 });
@@ -77,6 +78,7 @@ export const flags = pgTable("flags", {
   resolution: text("resolution"),
   resolvedBy: text("resolved_by"),
   resolvedAt: text("resolved_at"),
+  matchId: text("match_id"), // the proposed match this flag asks about, if any
   ownerEmail: text("owner_email").notNull().default("local@localhost"),
   createdAt: text("created_at").notNull().default(sql`now()`),
 });

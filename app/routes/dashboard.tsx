@@ -1,11 +1,13 @@
+import { sendToAgentChat } from "@agent-native/core/client/agent-chat";
 import {
   actionErrorMessage,
   useActionMutation,
   useActionQuery,
 } from "@agent-native/core/client/hooks";
 import { useSetPageTitle } from "@agent-native/toolkit/app-shell";
-import { IconFileUpload } from "@tabler/icons-react";
+import { IconArrowRight, IconFileUpload, IconSparkles } from "@tabler/icons-react";
 import { useMemo, useRef, useState, type FormEvent } from "react";
+import { Link } from "react-router";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -29,16 +31,51 @@ function todayIso() {
 export default function DashboardRoute() {
   useSetPageTitle("Dashboard");
   const receipts = useActionQuery("list-receipts", { limit: 15 });
+  const summary = useActionQuery("get-summary", {});
   const totals = receipts.data?.totals;
+  const s = summary.data;
+
+  function checkEverything() {
+    sendToAgentChat({
+      message: "Check everything: match every unchecked receipt to the money that paid for it, and flag only the problems.",
+      submit: true,
+      openSidebar: true,
+    });
+  }
 
   return (
     <div className="h-full overflow-auto">
       <div className="mx-auto flex max-w-5xl flex-col gap-10 px-4 py-8 sm:px-8">
-        <section aria-label="What's recorded" className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-          <Count label="receipts" value={totals?.receipts} />
-          <Count label="students" value={totals?.students} />
-          <Count label="MoMo lines" value={totals?.momoLines} />
-          <Count label="bank lines" value={totals?.bankLines} />
+        <section aria-label="Where things stand" className="flex flex-col gap-6">
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div className="grid grid-cols-3 gap-8">
+              <Count label={`of ${s?.receipts ?? "…"} receipts verified`} value={s?.verified} accent />
+              <Count label="flagged" value={s?.flagged} />
+              <Count label="students owing" value={s?.studentsOwing} />
+            </div>
+            <div className="flex items-center gap-3">
+              {s && s.openFlags > 0 && (
+                <Button asChild variant="outline">
+                  <Link to="/flags">
+                    Review {s.openFlags} flag{s.openFlags === 1 ? "" : "s"} <IconArrowRight className="size-4" />
+                  </Link>
+                </Button>
+              )}
+              <Button onClick={checkEverything} disabled={!s || s.unchecked === 0}>
+                <IconSparkles className="size-4" /> Check everything
+              </Button>
+            </div>
+          </div>
+          <div aria-label="What's recorded" className="text-sm text-muted-foreground">
+            {totals ? (
+              <>
+                {totals.students} students · {totals.momoLines} MoMo lines · {totals.bankLines} bank lines
+                {s ? ` · ${s.unchecked} receipts not checked yet` : ""}
+              </>
+            ) : (
+              <Skeleton className="h-4 w-72" />
+            )}
+          </div>
         </section>
 
         <section className="flex flex-col gap-3">
@@ -50,7 +87,7 @@ export default function DashboardRoute() {
           </div>
         </section>
 
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+        <div className="grid gap-10 2xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
           <AddReceiptForm />
           <section className="flex min-w-0 flex-col gap-3">
             <h2 className="text-sm font-medium text-muted-foreground">Latest receipts</h2>
@@ -62,13 +99,13 @@ export default function DashboardRoute() {
   );
 }
 
-function Count({ label, value }: { label: string; value: number | undefined }) {
+function Count({ label, value, accent }: { label: string; value: number | undefined; accent?: boolean }) {
   return (
     <div className="flex flex-col">
       {value === undefined ? (
         <Skeleton className="h-10 w-16" />
       ) : (
-        <span className="text-4xl font-semibold tabular-nums tracking-tight">{value}</span>
+        <span className={`text-4xl font-semibold tabular-nums tracking-tight ${accent ? "text-primary" : ""}`}>{value}</span>
       )}
       <span className="text-sm text-muted-foreground">{label}</span>
     </div>
