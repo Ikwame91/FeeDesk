@@ -17,6 +17,7 @@ import {
   type ProposedMatch,
 } from "./matching.js";
 import { pesewasToGhs } from "./money.js";
+import { normalisePhone, samePhone } from "./phone.js";
 import { normaliseReceiptNo } from "./receipt-rules.js";
 
 const { students, receipts, moneyLines, matches, flags } = schema;
@@ -361,7 +362,7 @@ export async function resolveFlag(input: ResolveInput, who: string): Promise<{ m
       const [line] = await db.select().from(moneyLines).where(eq(moneyLines.id, flag.moneyLineId!));
       let studentId = input.studentId;
       if (!studentId && line!.payerPhone) {
-        const owners = await db.select({ id: students.id }).from(students).where(eq(students.parentPhone, line!.payerPhone));
+        const owners = await db.select({ id: students.id }).from(students).where(eq(students.parentPhone, normalisePhone(line!.payerPhone)));
         if (owners.length === 1) studentId = owners[0]!.id;
       }
       if (!studentId) bad("Couldn't tell which student this is for from the payer's number; pass studentId.");
@@ -498,7 +499,7 @@ export async function listFlags(includeResolved = false, limit = 100) {
     const line = f.moneyLineId ? lineById.get(f.moneyLineId) : undefined;
     const match = f.matchId ? matchById.get(f.matchId) : undefined;
     const matchReceipts = match ? match.receiptIds.map((id) => describeReceipt(receiptById.get(id))!).filter(Boolean) : [];
-    const payerStudent = line?.payerPhone ? ledger.students.find((s) => s.parentPhone === line.payerPhone) : undefined;
+    const payerStudent = line?.payerPhone ? ledger.students.find((s) => samePhone(s.parentPhone, line.payerPhone)) : undefined;
     return {
       id: f.id,
       kind: f.kind,

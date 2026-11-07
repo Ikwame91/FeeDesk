@@ -82,6 +82,7 @@ function viewForPath(pathname: string): string {
   if (pathname === HOME_PATH) return "home";
   if (pathname.startsWith("/dashboard")) return "dashboard";
   if (pathname.startsWith("/flags")) return "flags";
+  if (pathname.startsWith("/school")) return "school";
   if (pathname.startsWith("/database")) return "database";
   if (pathname.startsWith("/extensions")) return "extensions";
   if (pathname.startsWith("/observability")) return "observability";
@@ -104,6 +105,8 @@ function pathForView(view?: string): string {
       return "/dashboard";
     case "flags":
       return "/flags";
+    case "school":
+      return "/school";
     case "database":
       return "/database";
     case "extensions":

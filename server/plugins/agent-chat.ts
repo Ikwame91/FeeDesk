@@ -21,6 +21,8 @@ const INITIAL_TOOL_NAMES = [
   "list-students",
   "import-students",
   "import-statement",
+  "get-school-settings",
+  "update-school-settings",
   "provider-api-request",
   "ask-question",
 ];

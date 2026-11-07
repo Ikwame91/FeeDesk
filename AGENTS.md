@@ -1,6 +1,6 @@
 # FeeDesk — read this first
 
-FeeDesk helps a school bursar check fee receipts against the money that actually came in (MoMo merchant + bank statements). Everything is fictional demo data (Adenta Hills Academy). Screens: `/dashboard` (view `dashboard`), `/flags` (view `flags`; `flagId` in navigation is the card the bursar selected, so "this one" means that flag).
+FeeDesk helps a school bursar check fee receipts against the money that actually came in (MoMo + bank statements). One FeeDesk = one school (name, term, MoMo number in `get-school-settings`). Demo data is fictional. Screens: `/dashboard` (view `dashboard`), `/flags` (view `flags`; `flagId` = the card the bursar selected, so "this one" means that flag), `/school` (view `school`).
 
 **Check everything** (the Dashboard button sends this):
 1. Call `run-check` once. It records every suggested match and raises every suggested flag (same rules as find-candidates, no guessing).
@@ -28,7 +28,8 @@ FeeDesk helps a school bursar check fee receipts against the money that actually
 | get-summary | Verified / flagged / owing headline |
 | add-receipt | Record one receipt |
 | list-receipts, list-students | Read receipts and the fee list |
-| import-students, import-statement | Load CSV text (statement source "momo" or "bank") |
+| import-students, import-statement | Load CSV text (statement source "momo" or "bank"; MTN's own export is detected and needs the school's MoMo number). For a PDF statement, turn it into CSV text first |
+| get-school-settings, update-school-settings | School name, term, MoMo number |
 
 # Chat — Agent Guide
 

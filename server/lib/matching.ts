@@ -7,6 +7,7 @@
  * Cash receipts are matched as a day's group against a bank deposit that adds up exactly.
  */
 import { pesewasToGhs } from "./money.js";
+import { samePhone } from "./phone.js";
 
 export interface MStudent {
   id: string;
@@ -103,9 +104,11 @@ export interface MomoEvidence {
 export function momoEvidence(r: MReceipt, s: MStudent, l: MLine): MomoEvidence | null {
   const dayGap = Math.abs(daysBetween(r.date, l.date));
   if (l.source !== "momo" || dayGap > DATE_WINDOW_DAYS) return null;
-  const phone = !!l.payerPhone && l.payerPhone === s.parentPhone;
+  const phone = samePhone(l.payerPhone, s.parentPhone);
   const parentTokens = tokens(s.parentName);
-  const name = [...tokens(l.payerName)].filter((t) => parentTokens.has(t)).length >= 2;
+  // MTN puts the real sender of a bank or cross-network payment in REF, so look there too.
+  const nameIn = (text: string | null | undefined) => [...tokens(text)].filter((t) => parentTokens.has(t)).length >= 2;
+  const name = nameIn(l.payerName) || nameIn(l.reference);
   const ref = refNamesStudent(l.reference, s);
   // Without the parent's phone, name or the student's name, a same-amount line is a coincidence.
   if (!phone && !name && !ref) return null;
@@ -196,7 +199,7 @@ export function suggestNextPage(ledger: Ledger, limit = 40): Suggestions {
       .filter((l) => !taken.has(l.id) && !flaggedLines.has(l.id))
       .sort((a, b) => a.date.localeCompare(b.date));
     for (const l of free.slice(0, limit)) {
-      const parentOf = l.payerPhone ? ledger.students.find((s) => s.parentPhone === l.payerPhone) : undefined;
+      const parentOf = l.payerPhone ? ledger.students.find((s) => samePhone(s.parentPhone, l.payerPhone)) : undefined;
       toFlag.push({
         kind: "no_receipt",
         moneyRef: moneyRef(l),

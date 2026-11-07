@@ -105,13 +105,13 @@ flowchart LR
 
 | Area | Files |
 |---|---|
-| Screens | `app/routes/dashboard.tsx`, `app/routes/flags.tsx` (card wording from `app/lib/explain-flag.ts`), sidebar links in `app/components/layout/Sidebar.tsx` |
+| Screens | `app/routes/dashboard.tsx`, `app/routes/flags.tsx`, `app/routes/school.tsx` (card wording from `app/lib/explain-flag.ts`), sidebar links in `app/components/layout/Sidebar.tsx` |
 | Actions | `actions/*.ts` (FeeDesk: add-receipt, import-*, list-*, find-candidates, record-match, raise-flag, resolve-flag, get-summary, run-check, load-demo-data) |
-| Logic | `server/lib/` (money, csv, importers, receipt-rules, ledger, matching, reconcile) |
+| Logic | `server/lib/` (money, phone, csv, importers incl. the MTN layout, receipt-rules, ledger, matching, reconcile, school) |
 | Data | `server/db/schema.ts`, `server/plugins/db.ts` |
 | Agent | `AGENTS.md` (FeeDesk section first), `server/plugins/agent-chat.ts` (first-turn tools, system prompt) |
 | Demo data | `scripts/generate-demo-data.ts` → `seed/`, loaded by `actions/load-demo-data.ts` |
-| Tests | `server/lib/*.test.ts`, `app/lib/*.test.ts`, `tests/*.test.ts` (35 tests, incl. the full check against `seed/answer-key.json`) |
+| Tests | `server/lib/*.test.ts`, `app/lib/*.test.ts`, `tests/*.test.ts` (47 tests, incl. the full check against `seed/answer-key.json`) |
 
 ---
 
@@ -174,7 +174,14 @@ agent; merges on GitHub show as Isaac Agyapong.
 | Date | What changed | Why | Key files | Commit |
 |---|---|---|---|---|
 | 7 Nov | Flag cards now say **What happened** and **What to do** in plain words (no confidence %, no `momo:` refs), with the raw evidence folded under "Evidence the check used"; cards are tinted by kind; the template's Home link is gone from the sidebar | Testing showed the cards were confusing; the Home page was a template leftover | `app/lib/explain-flag.ts` (+ test), `app/routes/flags.tsx`, `app/components/layout/Sidebar.tsx` | `4a20fa8` |
-| 7 Nov | **Redesign: the "Banknote" direction.** Followed the App Designer method (brief → three rendered directions → one chosen → screens → shoot and critique, 3 rounds). New theme (bone paper, ink, one oxblood accent, designed dark mode), Bodoni Moda + Public Sans (Inter removed), guilloché seal and banknote underprint, FeeDesk wordmark. Overview and To review rebuilt as ruled pages instead of card stacks; the *settled* stamp when a flag is resolved. `get-summary` now returns `verifiedGhs` and `owedGhs` | Kwame asked for a calm, trustworthy, memorable design (Creativity & Design is 20% of judging); the old UI looked like the template | `docs/design/*`, `app/global.css`, `app/components/feedesk/Seal.tsx`, `app/routes/dashboard.tsx`, `app/routes/flags.tsx`, `app/components/layout/Sidebar.tsx`, `app/lib/explain-flag.ts`, `server/lib/reconcile.ts`, `actions/get-summary.ts`, `package.json` | (this commit) |
+| 7 Nov | **Redesign: the "Banknote" direction.** Followed the App Designer method (brief → three rendered directions → one chosen → screens → shoot and critique, 3 rounds). New theme (bone paper, ink, one oxblood accent, designed dark mode), Bodoni Moda + Public Sans (Inter removed), guilloché seal and banknote underprint, FeeDesk wordmark. Overview and To review rebuilt as ruled pages instead of card stacks; the *settled* stamp when a flag is resolved. `get-summary` now returns `verifiedGhs` and `owedGhs` | Kwame asked for a calm, trustworthy, memorable design (Creativity & Design is 20% of judging); the old UI looked like the template | `docs/design/*`, `app/global.css`, `app/components/feedesk/Seal.tsx`, `app/routes/dashboard.tsx`, `app/routes/flags.tsx`, `app/components/layout/Sidebar.tsx`, `app/lib/explain-flag.ts`, `server/lib/reconcile.ts`, `actions/get-summary.ts`, `package.json` | `5a45da1` |
+
+
+### Phase 9 — Real statement formats and school settings (Sat 7 Nov)
+
+| Date | What changed | Why | Key files | Commit |
+|---|---|---|---|---|
+| 7 Nov | **Phones:** one shared rule turns every Ghana number into 0XXXXXXXXX (233…, +233…, 00233…, 9 digits, spaces/dashes) in every import and in matching; matching also finds the parent's name in a payment's REF. **MTN statements:** `import-statement` detects MTN's own export (TRANSACTION DATE … F_ID, REF, OVA), keeps only money paid *to* the school's number, uses F_ID as the transaction ID, reads dates like `06-Nov-2026 11:00:13 PM`, accepts amounts with any number of decimals (trailing zeros only), and for bank / cross-network payments takes the real sender's phone from REF. A fictional MTN-layout test file. **School settings:** `/school` page + `get-school-settings` / `update-school-settings` (name, term, MoMo number); the school line on every page now comes from settings, not code | Kwame supplied the real MTN export's headers; FeeDesk should work for any school, not just the demo one | `server/lib/phone.ts`, `server/lib/importers.ts`, `server/lib/money.ts`, `server/lib/matching.ts`, `server/lib/school.ts`, `actions/import-statement.ts`, `actions/*-school-settings.ts`, `app/routes/school.tsx`, `tests/mtn-statement.test.ts`, `tests/fixtures/mtn-momo-statement.csv` | (this commit) |
 
 ---
 
@@ -199,12 +206,18 @@ agent; merges on GitHub show as Isaac Agyapong.
 | 15 | Photo attachments | Builder's hand-written upload driver to `/_agent-native/file-upload`; attachments on only when storage is configured | Needed for the photo flow (PR #1). Why a custom driver rather than a framework helper isn't recorded | — |
 | 16 | Git workflow | One branch `scaffold-app`, plain commit messages without co-author lines | Owner's preference | Generated branch names, PR per feature |
 | 17 | Visual direction | "Banknote": bone paper, ink, one oxblood accent, Bodoni Moda + Public Sans, guilloché seal, ruled pages, a *settled* stamp | Calm and trustworthy (security printing = "this money is real"), memorable for judges; chosen from three rendered directions (`docs/design/DIRECTION.md`) | B. Harmattan (warm colour field; read soft), C. Banking hall (dark, condensed, mono; read like a trading terminal) |
+| 18 | Phone numbers | Store and compare every phone as 0XXXXXXXXX via one function (`server/lib/phone.ts`); unknown formats left as digits, never invented | Real statements write 233XXXXXXXXX while fee lists write 0XXXXXXXXX; a mismatch silently kills the strongest matching evidence | Normalise only at import (old rows and REF phones would still differ) |
+| 19 | MTN statement direction | Keep a row only when TO NO. is the school's own MoMo number (from School settings); skip rows from the school's number | MTN's export mixes money in and out; the receiving number is the one unambiguous signal | Trust TRANS. TYPE values (vary, undocumented here); guess the school's number from the most common TO NO. (only suggested in the error, never assumed) |
+| 20 | Real sender of pass-through payments | When FROM NO. isn't a mobile or FROM NAME looks like a bank/network/aggregator, take the phone from REF; matching also looks for the parent's name in REF | Kwame: bank and cross-network payments put the real sender in REF | Ignore REF (those payments would never match) |
+| 21 | School details | One settings record (`feedesk-school` in the framework's settings table): name, term, MoMo number | One school per installation (decision 5); avoids school names in code | A schools table (only needed for many schools per installation) |
+| 22 | PDF statements | Not parsed by FeeDesk; the agent turns a PDF into CSV text and calls `import-statement` | Kwame's call; PDF layouts vary and the agent can read them | A PDF parser in the app |
 
 ---
 
 ## 5. Known issues and tech debt
 
 **Not built yet (from the plan)**
+- No terms in the data: fees, balances and receipts are all for one term (the term on the School page is a label only).
 - **Photo capture screen**: photo → editable rows beside the image → Confirm. Today photos only work in the
   chat, with the agent showing a table to confirm.
 - **Students screen** (fee, paid, balance, status) and **reminder drafts** (`draft-reminders`).
@@ -230,7 +243,8 @@ agent; merges on GitHub show as Isaac Agyapong.
 - `matches.receipt_ids` is a JSON text array, not a join table.
 - Matching heuristics are tuned to the seed data: ±3-day MoMo window, 4-day deposit window, and a payment
   1 day late scores below 0.9 (so it gets flagged rather than verified).
-- The MoMo statement column layout is a guess; it hasn't been compared with a real merchant export.
+- Two MoMo layouts are supported: MTN's own export (headers from a real export, values in the test file invented) and the simple merchant layout used by the demo data. Telecel and AirtelTigo exports, and real bank CSVs, are not supported yet; the agent can convert them (or a PDF) to CSV first.
+- The "pass-through sender" rule (bank/network names, non-mobile FROM NO.) is a heuristic tested only on the invented MTN file.
 - Seed dates are Sep–Oct 2026 and receipts older than a year are rejected, so `pnpm demo:load` will start
   failing in Sep 2027 (tests pin "today" and are unaffected).
 - The real agent running **Check everything** has not been verified in an automated way; the tests and
@@ -251,5 +265,5 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 ## 6. Last updated
 
-**7 Nov 2026**. Covers every commit up to **`4a20fa8`** ("Make flag cards explain themselves; drop the
-template Home link"), plus the redesign commit in Phase 8.
+**7 Nov 2026**. Covers every commit up to **`5a45da1`** ("Redesign: the Banknote direction"), plus the
+statement-formats and school-settings commit in Phase 9.

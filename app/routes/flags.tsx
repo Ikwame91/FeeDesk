@@ -31,6 +31,7 @@ export default function FlagsRoute() {
   useSetPageTitle("To review");
   const flagsQuery = useActionQuery("list-flags", { includeResolved: "false" });
   const summary = useActionQuery("get-summary", {});
+  const school = useActionQuery("get-school-settings", {}).data;
   const [params, setParams] = useSearchParams();
   const selected = params.get("flag");
   const [stamped, setStamped] = useState<Set<string>>(new Set()); // showing the seal
@@ -84,7 +85,9 @@ export default function FlagsRoute() {
     <div className="h-full overflow-auto">
       <div className="mx-auto flex max-w-[860px] flex-col px-5 pb-16 pt-9 sm:px-12">
         <header>
-          <p className="text-sm text-muted-foreground">Adenta Hills Academy · First term 2026/27</p>
+          <p className="text-sm text-muted-foreground">
+            {school ? [school.schoolName, school.termLabel].filter(Boolean).join(" · ") : " "}
+          </p>
           {flagsQuery.isLoading ? (
             <Skeleton className="mt-4 h-14 w-96" />
           ) : (

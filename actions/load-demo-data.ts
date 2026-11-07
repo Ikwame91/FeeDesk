@@ -17,6 +17,7 @@ import { z } from "zod";
 import { getDb, schema } from "../server/db/index.js";
 import { parseBankCsv, parseMomoCsv, parseReceiptsCsv, parseStudentsCsv } from "../server/lib/importers.js";
 import { addReceipts, countLedger, insertMoneyLines, upsertStudents } from "../server/lib/ledger.js";
+import { saveSchool } from "../server/lib/school.js";
 
 const EXPECTED = { students: 45, receipts: 113, momoLines: 103, bankLines: 7 };
 
@@ -44,6 +45,8 @@ export default defineAction({
       await tx.delete(schema.students);
     });
 
+    // The fictional demo school. 0559000111 is the school's number in tests/fixtures/mtn-momo-statement.csv.
+    await saveSchool({ schoolName: "Adenta Hills Academy", termLabel: "First term 2026/27", momoNumber: "0559000111" });
     await upsertStudents(parseStudentsCsv(await seed("students.csv")), owner);
     await addReceipts(parseReceiptsCsv(await seed("receipts.csv")), "upload", owner);
     await insertMoneyLines(parseMomoCsv(await seed("momo-merchant-statement.csv")), owner);

@@ -23,8 +23,6 @@ export function meta() {
   return [{ title: `Overview - ${APP_TITLE}` }];
 }
 
-const SCHOOL = "Adenta Hills Academy · First term 2026/27";
-
 const fieldClass =
   "h-9 w-full rounded-[var(--radius)] border border-input bg-card px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30";
 
@@ -38,6 +36,7 @@ export default function DashboardRoute() {
   const receipts = useActionQuery("list-receipts", { limit: 12 });
   const summary = useActionQuery("get-summary", {});
   const flags = useActionQuery("list-flags", { includeResolved: "false" });
+  const school = useActionQuery("get-school-settings", {}).data;
   const s = summary.data;
   const totals = receipts.data?.totals;
 
@@ -61,7 +60,9 @@ export default function DashboardRoute() {
       <div className="mx-auto flex max-w-[1100px] flex-col px-5 pb-16 pt-9 sm:px-12">
         {/* Masthead */}
         <header className="flex flex-wrap items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">{SCHOOL}</p>
+          <p className="text-sm text-muted-foreground">
+            {school ? [school.schoolName, school.termLabel].filter(Boolean).join(" · ") : " "}
+          </p>
           {s && s.receipts > 0 && s.unchecked === 0 ? (
             <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
               <IconCheck className="size-4" strokeWidth={2} /> Every receipt checked

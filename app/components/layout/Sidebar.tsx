@@ -16,6 +16,7 @@ import { openCommandMenu } from "@agent-native/toolkit/app/shared";
 import {
   IconEdit,
   IconHome,
+  IconBuildingCommunity,
   IconFlag,
   IconLayoutDashboard,
   IconLayoutSidebarLeftCollapse,
@@ -182,6 +183,39 @@ function FlagsNavLink({ collapsed }: { collapsed: boolean }) {
       <Tooltip>
         <TooltipTrigger asChild>{link}</TooltipTrigger>
         <TooltipContent side="right">To review</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return <div className="px-2">{link}</div>;
+}
+
+function SchoolNavLink({ collapsed }: { collapsed: boolean }) {
+  const location = useLocation();
+  const active = location.pathname.startsWith("/school");
+  const link = (
+    <Link
+      to="/school"
+      aria-current={active ? "page" : undefined}
+      aria-label={collapsed ? "School" : undefined}
+      className={cn(
+        "flex items-center text-sidebar-accent-foreground transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+        active && "bg-sidebar-accent",
+        collapsed
+          ? "size-8 justify-center rounded-md"
+          : "h-8 w-full gap-3 rounded-lg px-3 text-sm font-medium",
+      )}
+    >
+      <IconBuildingCommunity className="size-4 shrink-0" strokeWidth={1.8} />
+      <span className={collapsed ? "sr-only" : "truncate"}>School</span>
+    </Link>
+  );
+
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{link}</TooltipTrigger>
+        <TooltipContent side="right">School</TooltipContent>
       </Tooltip>
     );
   }
@@ -440,6 +474,7 @@ export function Sidebar({
       >
         <DashboardNavLink collapsed={collapsed} />
         <FlagsNavLink collapsed={collapsed} />
+        <SchoolNavLink collapsed={collapsed} />
         <ChatThreadsSection collapsed={collapsed} />
       </nav>
 

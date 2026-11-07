@@ -3,7 +3,8 @@
  * so sums are exact. Conversion is done on the digits, never with float maths.
  */
 
-const GHS_PATTERN = /^(\d+)(?:\.(\d{1,2}))?$/;
+// Any number of decimals is read, but only up to 2 may be non-zero ("450.500" = 450.50; "450.505" is refused).
+const GHS_PATTERN = /^(\d+)(?:\.(\d{1,2})0*)?$/;
 
 /**
  * "450.50" → 45050. Accepts "1,200.00", "GHS 450", "₵450.5", 450.5.
@@ -12,6 +13,7 @@ const GHS_PATTERN = /^(\d+)(?:\.(\d{1,2}))?$/;
 export function ghsToPesewas(value: string | number): number {
   let text = typeof value === "number" ? numberToText(value) : value;
   text = text.trim().replace(/^(GHS|GH₵|GHC|₵)\s*/i, "").replace(/,/g, "").trim();
+  if (/^\d+\.$/.test(text)) text = text.slice(0, -1); // "450." from some exports
   const m = GHS_PATTERN.exec(text);
   if (!m) throw new Error(`"${value}" is not a GHS amount like 450.50`);
   const pesewas = Number(m[1]) * 100 + Number((m[2] ?? "").padEnd(2, "0"));
