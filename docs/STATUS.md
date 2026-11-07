@@ -2,8 +2,7 @@
 
 Live site: https://feedesk-gh.netlify.app
 Branch: `scaffold-app`
-Last commit on that branch before this polish: `9f2f85a` (`9f2f85a5b1f2f594489cb45cd553d249b768317e`), "Make run-check fast on a remote database".
-The polish in this working tree is not committed yet.
+Latest commit: `ec5adf7` (`ec5adf732095aee563a77bce30915d68047dadac`), "Keep review copy inside the uploaded records and document what is actually built."
 
 Deadline: **Tue 10 Nov 2026, 07:59 Accra** (Mon 9 Nov 2026, 11:59 PM Pacific).
 
