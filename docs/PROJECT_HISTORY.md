@@ -114,7 +114,7 @@ flowchart LR
 | Data | `server/db/schema.ts`, `server/plugins/db.ts` |
 | Agent | `AGENTS.md` (FeeDesk section first), `server/plugins/agent-chat.ts` (first-turn tools, system prompt) |
 | Demo data | `scripts/generate-demo-data.ts` → `seed/`, loaded by `actions/load-demo-data.ts` |
-| Tests | `server/lib/*.test.ts`, `app/lib/*.test.ts`, `tests/*.test.ts` (51 tests, incl. the full check against `seed/answer-key.json`) |
+| Tests | `server/lib/*.test.ts`, `app/lib/*.test.ts`, `tests/*.test.ts` (53 tests, incl. the full check against `seed/answer-key.json`) |
 
 ---
 
@@ -191,7 +191,8 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 | Date | What changed | Why | Key files | Commit |
 |---|---|---|---|---|
-| 7 Nov | **Photo capture screen** (`/capture`): snap or choose a photo of a receipt-book page → the page hands it to the agent (`sendToAgentChat` with the image) → the agent saves every row with `save-capture-rows` as drafts → the bursar checks an editable table beside the photo (unclear fields highlighted; unknown student, used receipt number, bad date, class mismatch shown per row) → **Add N receipts** (`confirm-capture`) adds them through the normal receipt rules as `source: "photo"`; failed rows stay with their reason. Rows can also be typed (no AI). New tables `capture_batches`, `capture_rows` (migration `feedesk-photo-capture`). **Review fixes** (from a Grok review): the to-review count says what it is made of; Check buttons always visible; a real "Snap a receipt page" button; correct tags (Duplicate, Banked later?); one wording per action shared by Overview and review page; numerals instead of spelled-out numbers; hint placeholders; darker small text | The photo is the demo's hero; the review found confusing counts and missing entry points | `app/routes/capture.tsx`, `server/lib/capture.ts`, `actions/{start,save,get,confirm}-capture*.ts`, `server/plugins/db.ts`, `app/lib/explain-flag.ts`, `app/routes/{dashboard,flags}.tsx`, `app/global.css`, `AGENTS.md`, `tests/capture.test.ts` | (this commit) |
+| 7 Nov | **Photo capture screen** (`/capture`): snap or choose a photo of a receipt-book page → the page hands it to the agent (`sendToAgentChat` with the image) → the agent saves every row with `save-capture-rows` as drafts → the bursar checks an editable table beside the photo (unclear fields highlighted; unknown student, used receipt number, bad date, class mismatch shown per row) → **Add N receipts** (`confirm-capture`) adds them through the normal receipt rules as `source: "photo"`; failed rows stay with their reason. Rows can also be typed (no AI). New tables `capture_batches`, `capture_rows` (migration `feedesk-photo-capture`). **Review fixes** (from a Grok review): the to-review count says what it is made of; Check buttons always visible; a real "Snap a receipt page" button; correct tags (Duplicate, Banked later?); one wording per action shared by Overview and review page; numerals instead of spelled-out numbers; hint placeholders; darker small text | The photo is the demo's hero; the review found confusing counts and missing entry points | `app/routes/capture.tsx`, `server/lib/capture.ts`, `actions/{start,save,get,confirm}-capture*.ts`, `server/plugins/db.ts`, `app/lib/explain-flag.ts`, `app/routes/{dashboard,flags}.tsx`, `app/global.css`, `AGENTS.md`, `tests/capture.test.ts` | `6ca7d59` |
+| 7 Nov | **First real photo test** (Kwame, GPT-6 Luna via Builder): 4 rows read in 26 s; numbers, dates, amounts, methods right; two cursive names misread ("Ama" → "Anna" Frimpong, "Afful" → "Ekow Appiah"), one left unclear. Student matching now scores like a person would: matching name words, near-spellings (≤2 letters off) and the class on the receipt; one clear winner (never on class alone, never a tie) is pre-filled as a close match with a note. `save-capture-rows` now accepts near-miss field names in `unclear` ("student", "amount") instead of rejecting the call | The two misreads came back as "No student called…" although each had one obvious match; the agent's run showed "1 failed" | `server/lib/capture.ts`, `actions/save-capture-rows.ts`, `tests/capture.test.ts` | (this commit) |
 
 ---
 
@@ -249,7 +250,8 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 **Shortcuts and risks**
 - The photo on the Capture screen lives only in that browser tab (not stored); after a reload the rows remain but the photo is gone.
-- The agent reading a photo from the Capture screen (`sendToAgentChat` with an image, then `save-capture-rows`) has not been run with a real model in this environment; the tests and browser checks play the agent's part through the same action.
+- The photo flow has been run once with a real model (Kwame's laptop, GPT-6 Luna): it works, but handwriting misreads names; the bursar's check (now with close-match suggestions) is what catches them.
+- The "1 failed" tool call in that run was not inspected; a field-name mismatch is the likely cause (now tolerated), but it is not confirmed.
 - No per-user access control (decision 5). Fine for a one-school demo; not for real use.
 - Status columns (`receipts.status`, `matches.state`) are plain text with CHECK constraints, not the
   framework's `defineMachine` state machines.
@@ -278,5 +280,5 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 ## 6. Last updated
 
-**7 Nov 2026**. Covers every commit up to **`263a833`** ("Read real MTN MoMo statements; normalise phones;
-add School settings"), plus the photo-capture commit in Phase 10.
+**7 Nov 2026**. Covers every commit up to **`6ca7d59`** ("Add the photo capture screen; apply review
+feedback"), plus the student-matching commit in Phase 10.

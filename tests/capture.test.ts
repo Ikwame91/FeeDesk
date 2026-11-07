@@ -10,7 +10,7 @@ import confirmCapture from "../actions/confirm-capture";
 import getCapture from "../actions/get-capture";
 import saveCaptureRows from "../actions/save-capture-rows";
 import { getDb, schema } from "../server/db/index";
-import { matchStudent, writtenDateToIso } from "../server/lib/capture";
+import { matchStudent, normaliseUnclear, writtenDateToIso } from "../server/lib/capture";
 import { parseStudentsCsv } from "../server/lib/importers";
 import { addReceipts, upsertStudents } from "../server/lib/ledger";
 import { FEEDESK_MIGRATIONS } from "../server/plugins/db";
@@ -41,6 +41,28 @@ describe("reading what's written in a receipt book", () => {
     expect(matchStudent("kweku  osei", all).how).toBe("exact");
     expect(matchStudent("Mensah", all)).toMatchObject({ student: null, how: "none" }); // two Mensahs: no guess
     expect(matchStudent("Kweku Osei Jnr", all)).toMatchObject({ how: "close", student: { id: "S1" } });
+  });
+
+  it("uses the class and near-spellings, like the real misreads from Kwame's photo", () => {
+    const roll = [
+      { id: "A", name: "Ama Frimpong", className: "Basic 4" },
+      { id: "B", name: "Kofi Frimpong", className: "JHS 2" },
+      { id: "C", name: "Ekow Afful", className: "Basic 6" },
+      { id: "D", name: "Linda Appiah", className: "Basic 4" },
+      { id: "E", name: "Esi Owusu", className: "Basic 4" },
+    ];
+    // "Ama" read as "Anna": surname + near-spelling + class → Ama Frimpong, not Kofi.
+    expect(matchStudent("Anna Frimpong", roll, "Basic 4")).toMatchObject({ how: "close", student: { id: "A" } });
+    // "Afful" read as "Appiah": first name + class → Ekow Afful, not Linda Appiah.
+    expect(matchStudent("Ekow Appiah", roll, "Basic 6")).toMatchObject({ how: "close", student: { id: "C" } });
+    // The class alone is never enough.
+    expect(matchStudent("Yaw Boateng", roll, "Basic 4")).toMatchObject({ how: "none", student: null });
+    // Without the class to break the tie, two Frimpongs stay a question.
+    expect(matchStudent("Anna Frimpong", roll)).toMatchObject({ how: "none" });
+  });
+
+  it("accepts the agent's near-miss names for unclear fields", () => {
+    expect(normaliseUnclear(["student", "Amount", "class_name", "nonsense"])).toEqual(["studentName", "amountGhs", "className"]);
   });
 });
 

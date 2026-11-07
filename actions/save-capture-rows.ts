@@ -19,7 +19,10 @@ export default defineAction({
           className: z.string().optional().describe('Class as written, e.g. "JHS 3"'),
           amountGhs: z.string().optional().describe("Amount as written, e.g. 460.00"),
           method: z.string().optional().describe('"cash" or "momo"'),
-          unclear: z.array(z.enum(CAPTURE_FIELDS)).optional().describe("Fields you could not read with confidence (leave those values empty)"),
+          unclear: z
+            .array(z.string())
+            .optional()
+            .describe(`Fields you could not read with confidence (leave those values empty): any of ${CAPTURE_FIELDS.join(", ")}`),
         }),
       )
       .min(1)

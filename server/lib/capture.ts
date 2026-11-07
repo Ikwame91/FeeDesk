@@ -22,10 +22,28 @@ export interface CaptureRowInput {
   className?: string | undefined;
   amountGhs?: string | undefined;
   method?: string | undefined;
-  unclear?: CaptureField[] | undefined;
+  unclear?: string[] | undefined;
 }
 
 export class CaptureError extends Error {}
+
+const FIELD_ALIASES: Record<string, CaptureField> = {
+  receiptno: "receiptNo", receipt: "receiptNo", receiptnumber: "receiptNo", number: "receiptNo", no: "receiptNo",
+  date: "date",
+  studentname: "studentName", student: "studentName", name: "studentName",
+  classname: "className", class: "className",
+  amountghs: "amountGhs", amount: "amountGhs", ghs: "amountGhs",
+  method: "method", paidby: "method", payment: "method",
+};
+/** "student", "Amount", "class_name" → the field names the screen uses; unknown names are dropped. */
+export function normaliseUnclear(fields: string[] | undefined): CaptureField[] {
+  const out = new Set<CaptureField>();
+  for (const f of fields ?? []) {
+    const k = FIELD_ALIASES[f.toLowerCase().replace(/[^a-z]/g, "")];
+    if (k) out.add(k);
+  }
+  return [...out];
+}
 
 /** "28/10/26", "28-10-2026", "2026-10-28" → "2026-10-28". Receipt books write day/month/year. */
 export function writtenDateToIso(raw: string): string {
@@ -71,7 +89,7 @@ export async function saveCaptureRows(batchId: string | undefined, rows: Capture
           className: (r.className ?? "").trim(),
           amountGhs: (r.amountGhs ?? "").trim(),
           method: normaliseMethod(r.method ?? ""),
-          unclear: JSON.stringify((r.unclear ?? []).filter((f) => (CAPTURE_FIELDS as readonly string[]).includes(f))),
+          unclear: JSON.stringify(normaliseUnclear(r.unclear)),
           ownerEmail,
         })),
       );
@@ -90,19 +108,43 @@ interface StudentLite {
 
 const tokens = (s: string) => s.toLowerCase().split(/[^a-z]+/).filter((t) => t.length > 1);
 
-/** Exact name → match; one clearly closest name → suggested; otherwise up to 3 suggestions. */
-export function matchStudent(name: string, all: StudentLite[]) {
+/** Edit distance between two short words (for misread handwriting: "Anna" vs "Ama"). */
+function editDistance(a: string, b: string): number {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array<number>(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0]![j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      d[i]![j] = Math.min(d[i - 1]![j]! + 1, d[i]![j - 1]! + 1, d[i - 1]![j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length]![b.length]!;
+}
+
+/**
+ * Exact name → match. Otherwise score every student, as a person reading the book would:
+ * +2 per name word that matches, +1 per name word that is a near-spelling (handwriting misread,
+ * at most 2 letters off), +2 when the class on the receipt is the student's class.
+ * One clear winner with at least 4 points (so never on the class alone) is suggested as a close
+ * match; ties are never broken by guessing.
+ */
+export function matchStudent(name: string, all: StudentLite[], className?: string) {
   const n = name.trim().toLowerCase().replace(/\s+/g, " ");
   if (!n) return { student: null, how: "none" as const, suggestions: [] as StudentLite[] };
   const exact = all.filter((s) => s.name.toLowerCase() === n);
   if (exact.length === 1) return { student: exact[0]!, how: "exact" as const, suggestions: [] };
   const want = tokens(n);
   const scored = all
-    .map((s) => ({ s, score: tokens(s.name).filter((t) => want.includes(t)).length }))
-    .filter((x) => x.score > 0)
+    .map((s) => {
+      let nameScore = 0;
+      for (const t of tokens(s.name)) {
+        if (want.includes(t)) nameScore += 2;
+        else if (t.length >= 3 && want.some((w) => w.length >= 3 && Math.abs(w.length - t.length) <= 2 && editDistance(w, t) <= 2)) nameScore += 1;
+      }
+      const classScore = nameScore > 0 && className && sameClass(className, s.className) ? 2 : 0;
+      return { s, nameScore, score: nameScore + classScore };
+    })
+    .filter((x) => x.nameScore > 0)
     .sort((a, b) => b.score - a.score);
   const best = scored[0];
-  if (best && best.score >= 2 && (scored[1]?.score ?? 0) < best.score) {
+  if (best && best.score >= 4 && best.nameScore >= 2 && (scored[1]?.score ?? 0) < best.score) {
     return { student: best.s, how: "close" as const, suggestions: scored.slice(1, 3).map((x) => x.s) };
   }
   return { student: null, how: "none" as const, suggestions: scored.slice(0, 3).map((x) => x.s) };
@@ -148,7 +190,7 @@ export function checkRow(
     }
   } else if (!row.unclear.includes("amountGhs")) problems.push("Amount is missing.");
   if (row.method !== "cash" && row.method !== "momo" && !row.unclear.includes("method")) problems.push("Say cash or MoMo.");
-  const m = matchStudent(row.studentName, all);
+  const m = matchStudent(row.studentName, all, row.className);
   if (!m.student && !row.unclear.includes("studentName")) {
     problems.push(row.studentName ? `No student called "${row.studentName}" on the fee list.` : "Student is missing.");
   }
