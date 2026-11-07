@@ -15,7 +15,8 @@
     "test": "vitest --run --passWithNoTests",
     "agent-native:doctor": "agent-native doctor",
     "demo:generate": "tsx scripts/generate-demo-data.ts",
-    "demo:load": "node scripts/check-database-url.mjs && agent-native action load-demo-data"
+    "demo:load": "node scripts/check-database-url.mjs && agent-native action load-demo-data",
+    "demo:check": "node scripts/check-database-url.mjs && AGENT_USER_EMAIL=${AGENT_USER_EMAIL:-dev@local.test} agent-native action run-check"
   },
   "dependencies": {
     "@agent-native/agentkit": "^0.223.0",

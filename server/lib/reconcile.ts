@@ -9,6 +9,7 @@ import { addReceipts } from "./ledger.js";
 import {
   AUTO_ACCEPT,
   moneyRef,
+  suggestNextPage,
   parseMoneyRef,
   type Ledger,
   type MReceipt,
@@ -385,6 +386,36 @@ export async function resolveFlag(input: ResolveInput, who: string): Promise<{ m
       return { message: `Marked as a real problem${receipt ? `: receipt ${receipt.receiptNo} stays flagged` : ""}.` };
     }
   }
+}
+
+// ---------- the whole check, no AI ----------
+/**
+ * Runs every page of suggestions through record-match and raise-flag, exactly as the
+ * agent does when it passes suggestions through. Deterministic: no model involved.
+ */
+export async function runFullCheck(who: string, pageSize = 40) {
+  let pages = 0;
+  let verified = 0;
+  let flaggedByMatch = 0;
+  let flagsRaised = 0;
+  const notSaved: string[] = [];
+  for (; pages < 20; ) {
+    const page = suggestNextPage(await loadLedger(), pageSize);
+    if (page.toRecord.length === 0 && page.toFlag.length === 0 && page.receiptsInPage === 0) break;
+    pages++;
+    for (const o of await recordMatches(page.toRecord, who)) {
+      if (o.outcome === "verified") verified += o.receiptNos.length;
+      else if (o.outcome === "flagged") flaggedByMatch += o.receiptNos.length;
+      else notSaved.push(`${o.receiptNos.join(", ")}: ${o.detail}`);
+    }
+    if (page.toFlag.length) {
+      const r = await raiseFlags(page.toFlag, who);
+      flagsRaised += r.raised;
+      notSaved.push(...r.skipped);
+    }
+    if (page.receiptsInPage === 0 && page.done) break;
+  }
+  return { pages, verified, flaggedByMatch, flagsRaised, notSaved };
 }
 
 // ---------- summary ----------

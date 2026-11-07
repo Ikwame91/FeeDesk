@@ -51,7 +51,8 @@ pnpm dev
 ```
 
 Open http://localhost:8080, choose **Continue as local dev**, then connect an AI provider
-under **Connect AI**. Load the fictional demo data with `pnpm demo:load`.
+under **Connect AI**. Load the fictional demo data with `pnpm demo:load`, and run the
+matching without AI (no credits) with `pnpm demo:check` or the **Check without AI** button.
 
 ## Built with
 

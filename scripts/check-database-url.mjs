@@ -5,11 +5,15 @@
 import { existsSync, readFileSync } from "node:fs";
 
 const ok = (v) => /^pglite:/i.test(v) || /^postgres(ql)?:\/\//i.test(v);
-const keys = ["DATABASE_URL", "FEEDESK_DATABASE_URL", "DATABASE_URL_UNPOOLED"];
+const keys = ["DATABASE_URL", "DATABASE_URL_UNPOOLED"];
 const problems = [];
 
-for (const key of keys) {
-  const v = process.env[key]?.trim();
+const fromShell = {
+  DATABASE_URL: process.env.DATABASE_URL,
+  DATABASE_URL_UNPOOLED: process.env.DATABASE_URL_UNPOOLED,
+};
+for (const [key, raw] of Object.entries(fromShell)) {
+  const v = raw?.trim();
   if (v && !ok(v)) problems.push(`${key} is set in your terminal/shell to "${v.slice(0, 20)}…"`);
 }
 for (const file of [".env", ".env.local"]) {

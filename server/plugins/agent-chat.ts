@@ -9,6 +9,7 @@ import actionsRegistry from "../../.generated/actions-registry.js";
 const INITIAL_TOOL_NAMES = [
   "view-screen",
   "navigate",
+  "run-check",
   "find-candidates",
   "record-match",
   "raise-flag",

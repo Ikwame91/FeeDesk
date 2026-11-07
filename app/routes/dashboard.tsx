@@ -35,6 +35,11 @@ export default function DashboardRoute() {
   const totals = receipts.data?.totals;
   const s = summary.data;
 
+  const quickCheck = useActionMutation("run-check", {
+    onSuccess: (r) => toast.success(r.message),
+    onError: (error) => toast.error(actionErrorMessage(error) ?? "The check didn't finish. Try again."),
+  });
+
   function checkEverything() {
     sendToAgentChat({
       message: "Check everything: match every unchecked receipt to the money that paid for it, and flag only the problems.",
@@ -61,7 +66,15 @@ export default function DashboardRoute() {
                   </Link>
                 </Button>
               )}
-              <Button onClick={checkEverything} disabled={!s || s.unchecked === 0}>
+              <Button
+                variant="outline"
+                onClick={() => quickCheck.mutate({})}
+                disabled={!s || s.unchecked === 0 || quickCheck.isPending}
+                title="Runs the same matching rules directly, without the AI agent (uses no AI credits)"
+              >
+                {quickCheck.isPending ? "Checking…" : "Check without AI"}
+              </Button>
+              <Button onClick={checkEverything} disabled={!s || s.unchecked === 0 || quickCheck.isPending}>
                 <IconSparkles className="size-4" /> Check everything
               </Button>
             </div>
