@@ -42,6 +42,7 @@ export interface MMatch {
   state: string;
 }
 export interface MFlag {
+  id?: string;
   kind: string;
   receiptId: string | null;
   moneyLineId: string | null;

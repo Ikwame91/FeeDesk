@@ -41,8 +41,8 @@ Other commands: `pnpm demo:check` (run the matching without AI), `pnpm demo:gene
 
 ## 2. Current architecture
 
-**Not deployed yet.** Target: Netlify (git-connected to `scaffold-app`) with Neon Postgres; the build and
-production migrations are verified locally. Steps in [`docs/DEPLOY.md`](DEPLOY.md).
+**Deployed** on Netlify (git-connected to `scaffold-app`, every push redeploys) with Neon Postgres
+(Frankfurt). Sign-up is invite-only. Steps in [`docs/DEPLOY.md`](DEPLOY.md).
 
 ```mermaid
 flowchart LR
@@ -199,7 +199,14 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 | Date | What changed | Why | Key files | Commit |
 |---|---|---|---|---|
-| 7 Nov | **Light is the main theme** (no longer follows the computer's dark setting); a **Dark mode / Light mode** switch in the sidebar, remembered per device. **Deploy prepared:** `netlify.toml` cleaned (template's Google Analytics/Tag Manager IDs, its trusted origins and the hosted-harness flag removed; Node 22 pinned; invite-only sign-up with email verification off because there is no email service); verified here that the Netlify build succeeds and that `pnpm migrate:production` applies all three FeeDesk migrations; `docs/DEPLOY.md` with click-by-click Neon + Netlify steps | Kwame wants light as the default with dark as a choice; the deploy was overdue and the demo must be recorded on the live site | `app/root.tsx`, `app/components/layout/Sidebar.tsx`, `netlify.toml`, `docs/DEPLOY.md` | (this commit) |
+| 7 Nov | **Light is the main theme** (no longer follows the computer's dark setting); a **Dark mode / Light mode** switch in the sidebar, remembered per device. **Deploy prepared:** `netlify.toml` cleaned (template's Google Analytics/Tag Manager IDs, its trusted origins and the hosted-harness flag removed; Node 22 pinned; invite-only sign-up with email verification off because there is no email service); verified here that the Netlify build succeeds and that `pnpm migrate:production` applies all three FeeDesk migrations; `docs/DEPLOY.md` with click-by-click Neon + Netlify steps | Kwame wants light as the default with dark as a choice; the deploy was overdue and the demo must be recorded on the live site | `app/root.tsx`, `app/components/layout/Sidebar.tsx`, `netlify.toml`, `docs/DEPLOY.md` | `beea3ac` |
+
+
+### Phase 12 — Live site: run-check fast on a remote database (Sat 7 Nov)
+
+| Date | What changed | Why | Key files | Commit |
+|---|---|---|---|---|
+| 7 Nov | **Deployed** (Netlify `steady-cajeta-ff2c1c`, Neon Frankfurt). QA found `run-check` returned 502 after ~30 s on the live site, verifying only 13–20 receipts per try. Cause: ~10–15 sequential queries per receipt, each crossing the Atlantic. Reproduced locally with real Postgres behind a relay adding 45 ms each way: **2 min 36 s**. Fix: a `CheckPlan` reads the ledger once (5 parallel queries), makes every record-match / raise-flag decision in memory with unchanged rules, and writes everything in one transaction with bulk statements; `record-match`, `raise-flag` and `run-check` all use it; `get-summary` sends its reads in parallel. Same link afterwards: **run-check 1.68 s + summary 0.47 s** (~32 queries instead of 1,000+), identical results (answer-key test unchanged) | The live demo depends on the Check button; Netlify functions stop at ~30 s | `server/lib/reconcile.ts`, `server/lib/matching.ts` | (this commit) |
 
 ---
 
@@ -235,6 +242,7 @@ agent; merges on GitHub show as Isaac Agyapong.
 | 26 | Theme | Light by default for everyone; dark only by choosing it (sidebar switch) | The Banknote direction is designed light-first; Kwame's call | Follow the operating system (the template's default) |
 | 27 | Hosting | Netlify, git-connected to `scaffold-app`; Neon Postgres (Frankfurt); migrations in the production build | The template ships a Netlify config; every push redeploys; no local build needed on a laptop with a stray `DATABASE_URL` | Netlify CLI deploys from the laptop (the framework guide's route); Vercel/Render |
 | 28 | Who can sign in to the live site | `AUTH_SIGNUP=invited` + `AUTH_BOOTSTRAP_ADMINS` (Kwame), email verification off | No email service; open sign-up would let anyone use the AI credits; verification can't be delivered | Open sign-up with verification (needs an email provider); `AUTH_DISABLED` (exposes everything) |
+| 29 | Writing a check | Read once, decide in memory, write once in one transaction (`CheckPlan`) | Round trips, not computation, are the cost on a remote database; one transaction also means a check is all-or-nothing | Per-receipt writes (simple, but ~1,000 round trips); a database-side stored procedure |
 
 ---
 
@@ -243,9 +251,7 @@ agent; merges on GitHub show as Isaac Agyapong.
 **Not built yet (from the plan)**
 - No terms in the data: fees, balances and receipts are all for one term (the term on the School page is a label only).
 - **Students screen** (fee, paid, balance, status) and **reminder drafts** (`draft-reminders`).
-- **Deployment** is prepared (`docs/DEPLOY.md`, cleaned `netlify.toml`, build and migrations verified
-  locally) but not yet done: it needs Kwame's Neon and Netlify accounts. Judges can't sign up to the live
-  site (invite-only); the Clips video is the public demo.
+- Judges can't sign up to the live site (invite-only); the Clips video is the public demo.
 
 **UX found confusing in testing**
 - The design critique was self-scored (`docs/design/CRITIQUE.md`), not done by an independent critic; contrast was checked by eye, not measured.
@@ -258,6 +264,9 @@ agent; merges on GitHub show as Isaac Agyapong.
   no longer linked). The template logo is replaced by the FeeDesk wordmark.
 
 **Shortcuts and risks**
+- Two people running a check at the very same moment could both record the same match: decisions are made on a snapshot read before the write transaction (no row locks). Fine for one bursar; not for many concurrent users.
+- The framework's cookie-consent banner shows for visitors in consent regions; it governs optional analytics that FeeDesk doesn't configure. Left in place rather than hidden.
+- The database (Frankfurt) and Netlify's functions are in different regions; every page pays the round trips. A database next to the functions would make every page faster.
 - The photo on the Capture screen lives only in that browser tab (not stored); after a reload the rows remain but the photo is gone.
 - The photo flow has been run once with a real model (Kwame's laptop, GPT-6 Luna): it works, but handwriting misreads names; the bursar's check (now with close-match suggestions) is what catches them.
 - The "1 failed" tool call in that run was not inspected; a field-name mismatch is the likely cause (now tolerated), but it is not confirmed.
@@ -289,5 +298,5 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 ## 6. Last updated
 
-**7 Nov 2026**. Covers every commit up to **`3387533`** ("Match misread student names by class and
-near-spelling"), plus the theme and deploy-preparation commit in Phase 11.
+**7 Nov 2026**. Covers every commit up to **`beea3ac`** ("Make light the default theme; prepare the Netlify
+deploy"), plus the run-check speed commit in Phase 12.

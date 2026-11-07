@@ -12,6 +12,7 @@ import {
   suggestNextPage,
   parseMoneyRef,
   type Ledger,
+  type MLine,
   type MReceipt,
   type ProposedFlag,
   type ProposedMatch,
@@ -47,7 +48,7 @@ export async function loadLedger(): Promise<Ledger> {
       .select({ id: moneyLines.id, source: moneyLines.source, date: moneyLines.date, payerName: moneyLines.payerName, payerPhone: moneyLines.payerPhone, amountPesewas: moneyLines.amountPesewas, txnId: moneyLines.txnId, reference: moneyLines.reference })
       .from(moneyLines),
     db.select({ id: matches.id, receiptIds: matches.receiptIds, moneyLineId: matches.moneyLineId, state: matches.state }).from(matches),
-    db.select({ kind: flags.kind, receiptId: flags.receiptId, moneyLineId: flags.moneyLineId, resolvedAt: flags.resolvedAt }).from(flags),
+    db.select({ id: flags.id, kind: flags.kind, receiptId: flags.receiptId, moneyLineId: flags.moneyLineId, resolvedAt: flags.resolvedAt }).from(flags),
   ]);
   return {
     students: s,
@@ -70,29 +71,65 @@ async function findLine(ref: string) {
   return line;
 }
 
-// ---------- record-match ----------
+// ---------- record-match / raise-flag: decide in memory, write once ----------
 export interface RecordOutcome {
   receiptNos: string[];
   outcome: "verified" | "flagged" | "rejected";
   detail: string;
 }
 
+type NewMatch = typeof matches.$inferInsert;
+type NewFlag = typeof flags.$inferInsert;
+
 /**
- * Saves each proposed match. Auto-accepts only when confidence >= 0.9 AND the receipts
- * add up exactly to the money line AND the method fits (MoMo↔MoMo, cash↔bank).
- * Anything else is saved as "proposed" with a flag for the bursar. Bad items are
- * rejected individually; the rest still save.
+ * Every matching write goes through a CheckPlan. It works on a ledger read once, applies each
+ * record-match / raise-flag decision in memory (and to that ledger, so later suggestions see it),
+ * and `commit()` writes everything in ONE transaction with bulk statements. On a database across an
+ * ocean that is a handful of round trips instead of a dozen per receipt.
+ *
+ * The rules are unchanged: a match is auto-accepted only when confidence >= 0.9 AND the receipts add
+ * up exactly to the money line AND the method fits (MoMo↔MoMo, cash↔bank); anything else is saved as
+ * "proposed" with a flag. Bad items are rejected one by one; the rest still save.
  */
-export async function recordMatches(items: ProposedMatch[], ownerEmail: string): Promise<RecordOutcome[]> {
-  const db = getDb();
-  const out: RecordOutcome[] = [];
-  for (const item of items) {
+export class CheckPlan {
+  private readonly receiptByNo = new Map<string, MReceipt>();
+  private readonly lineByRef = new Map<string, MLine>();
+  private readonly lineHolders = new Map<string, string[]>(); // lineId -> receiptIds of its live match
+  private readonly newMatches: NewMatch[] = [];
+  private readonly newFlags: NewFlag[] = [];
+  private readonly statusChanges = new Map<string, string>(); // receiptId -> new status
+  private readonly resolvedFlagIds = new Set<string>(); // existing no_receipt flags now answered
+  private readonly stamp = now();
+
+  constructor(
+    readonly ledger: Ledger,
+    private readonly owner: string,
+  ) {
+    for (const r of ledger.receipts) this.receiptByNo.set(r.receiptNo, r);
+    for (const l of ledger.lines) this.lineByRef.set(moneyRef(l), l);
+    for (const m of ledger.matches) if (m.state !== "rejected") this.lineHolders.set(m.moneyLineId, m.receiptIds);
+  }
+
+  private line(ref: string): MLine {
+    const parsed = parseMoneyRef(ref);
+    if (!parsed) throw new ReconcileError(`"${ref}" is not a money reference like momo:94336846938 or bank:DEP20260917.`, "not_found");
+    const line = this.lineByRef.get(moneyRef(parsed));
+    if (!line) throw new ReconcileError(`No ${parsed.source === "momo" ? "MoMo" : "bank"} line ${parsed.txnId}.`, "not_found");
+    return line;
+  }
+
+  private setStatus(r: MReceipt, status: string) {
+    r.status = status;
+    this.statusChanges.set(r.id, status);
+  }
+
+  recordMatch(item: ProposedMatch): RecordOutcome {
     const receiptNos = item.receiptNos.map(normaliseReceiptNo);
     try {
-      const line = await findLine(item.moneyRef);
-      const rs = await db.select().from(receipts).where(inArray(receipts.receiptNo, receiptNos));
-      const missing = receiptNos.filter((no) => !rs.some((r) => r.receiptNo === no));
+      const line = this.line(item.moneyRef);
+      const missing = receiptNos.filter((no) => !this.receiptByNo.has(no));
       if (missing.length) throw new ReconcileError(`Receipt ${missing.join(", ")} not found.`, "not_found");
+      const rs = receiptNos.map((no) => this.receiptByNo.get(no)!);
       const notOpen = rs.filter((r) => r.status !== "unchecked");
       if (notOpen.length) {
         throw new ReconcileError(
@@ -100,18 +137,11 @@ export async function recordMatches(items: ProposedMatch[], ownerEmail: string):
           "conflict",
         );
       }
-      const live = await db
-        .select({ receiptIds: matches.receiptIds })
-        .from(matches)
-        .where(and(eq(matches.moneyLineId, line.id), sql`${matches.state} <> 'rejected'`))
-        .limit(1);
-      if (live.length) {
-        const holders = await db
-          .select({ receiptNo: receipts.receiptNo })
-          .from(receipts)
-          .where(inArray(receipts.id, JSON.parse(live[0]!.receiptIds) as string[]));
+      const holders = this.lineHolders.get(line.id);
+      if (holders) {
+        const nos = holders.map((id) => this.ledger.receipts.find((r) => r.id === id)?.receiptNo).filter(Boolean);
         throw new ReconcileError(
-          `${moneyRef(line)} is already matched to receipt ${holders.map((h) => h.receiptNo).join(", ")}. If this is a second receipt for the same payment, raise a duplicate flag.`,
+          `${moneyRef(line)} is already matched to receipt ${nos.join(", ")}. If this is a second receipt for the same payment, raise a duplicate flag.`,
           "conflict",
         );
       }
@@ -122,126 +152,117 @@ export async function recordMatches(items: ProposedMatch[], ownerEmail: string):
       const auto = confidence >= AUTO_ACCEPT && sum === line.amountPesewas && methodFits;
       const matchId = crypto.randomUUID();
       const reason = item.reason.trim().slice(0, 200);
+      const receiptIds = rs.map((r) => r.id);
 
-      await db.transaction(async (tx) => {
-        await tx.insert(matches).values({
-          id: matchId,
-          receiptIds: JSON.stringify(rs.map((r) => r.id)),
-          moneyLineId: line.id,
-          confidence,
-          reason,
-          state: auto ? "auto" : "proposed",
-          ownerEmail,
-        });
-        await tx
-          .update(receipts)
-          .set({ status: auto ? "verified" : "flagged" })
-          .where(inArray(receipts.id, rs.map((r) => r.id)));
-        // A receipt has now turned up for this money, so an earlier "no receipt" flag is answered.
-        await tx
-          .update(flags)
-          .set({
-            resolution: `auto: receipt ${receiptNos.join(", ")} found for this payment`,
-            resolvedBy: ownerEmail,
-            resolvedAt: now(),
-          })
-          .where(and(eq(flags.moneyLineId, line.id), eq(flags.kind, "no_receipt"), isNull(flags.resolvedAt)));
-        if (!auto) {
-          const kind = sum !== line.amountPesewas ? "amount_diff" : "no_money";
-          const lineLabel = line.source === "momo" ? "the MoMo payment" : "the bank deposit";
-          const why =
-            sum !== line.amountPesewas
-              ? /differs/i.test(item.reason)
-                ? "" // the reason already states both amounts
-                : `Receipt${rs.length > 1 ? "s total" : " says"} ${ghs(sum)}; ${lineLabel} is ${ghs(line.amountPesewas)}.`
-              : !methodFits
-                ? `Payment method doesn't fit (${rs[0]!.method} receipt vs ${line.source} line).`
-                : `Possible match at ${Math.round(confidence * 100)}% confidence needs a person to confirm.`;
-          await tx.insert(flags).values({
-            id: crypto.randomUUID(),
-            kind,
-            receiptId: rs[0]!.id,
-            moneyLineId: line.id,
-            matchId,
-            note: `${why} ${reason}`.trim().slice(0, 500),
-            ownerEmail,
-          });
-        }
-      });
-      out.push({
+      this.newMatches.push({ id: matchId, receiptIds: JSON.stringify(receiptIds), moneyLineId: line.id, confidence, reason, state: auto ? "auto" : "proposed", ownerEmail: this.owner });
+      this.ledger.matches.push({ id: matchId, receiptIds, moneyLineId: line.id, state: auto ? "auto" : "proposed" });
+      this.lineHolders.set(line.id, receiptIds);
+      for (const r of rs) this.setStatus(r, auto ? "verified" : "flagged");
+
+      // A receipt has now turned up for this money, so an earlier "no receipt" flag is answered.
+      for (const f of this.ledger.flags) {
+        if (f.kind !== "no_receipt" || f.moneyLineId !== line.id || f.resolvedAt) continue;
+        f.resolvedAt = this.stamp;
+        const fresh = this.newFlags.find((n) => n.id === f.id);
+        if (fresh) Object.assign(fresh, { resolution: `auto: receipt ${receiptNos.join(", ")} found for this payment`, resolvedBy: this.owner, resolvedAt: this.stamp });
+        else if (f.id) this.resolvedFlagIds.add(f.id);
+      }
+
+      if (!auto) {
+        const kind = sum !== line.amountPesewas ? "amount_diff" : "no_money";
+        const lineLabel = line.source === "momo" ? "the MoMo payment" : "the bank deposit";
+        const why =
+          sum !== line.amountPesewas
+            ? /differs/i.test(item.reason)
+              ? "" // the reason already states both amounts
+              : `Receipt${rs.length > 1 ? "s total" : " says"} ${ghs(sum)}; ${lineLabel} is ${ghs(line.amountPesewas)}.`
+            : !methodFits
+              ? `Payment method doesn't fit (${rs[0]!.method} receipt vs ${line.source} line).`
+              : `Possible match at ${Math.round(confidence * 100)}% confidence needs a person to confirm.`;
+        this.addFlag({ kind, receiptId: rs[0]!.id, moneyLineId: line.id, matchId, note: `${why} ${reason}`.trim().slice(0, 500) });
+      }
+      return {
         receiptNos,
         outcome: auto ? "verified" : "flagged",
         detail: auto ? `matched ${moneyRef(line)}` : `flagged for review against ${moneyRef(line)}`,
-      });
+      };
     } catch (e) {
       if (!(e instanceof ReconcileError)) throw e;
-      out.push({ receiptNos, outcome: "rejected", detail: e.message });
+      return { receiptNos, outcome: "rejected", detail: e.message };
     }
   }
-  return out;
-}
 
-// ---------- raise-flag ----------
-export async function raiseFlags(items: ProposedFlag[], ownerEmail: string) {
-  const db = getDb();
-  let raised = 0;
-  const skipped: string[] = [];
-  for (const f of items) {
+  private addFlag(f: { kind: string; receiptId: string | null; moneyLineId: string | null; matchId?: string; note: string }) {
+    const id = crypto.randomUUID();
+    this.newFlags.push({ id, kind: f.kind as NewFlag["kind"], receiptId: f.receiptId, moneyLineId: f.moneyLineId, matchId: f.matchId ?? null, note: f.note, ownerEmail: this.owner });
+    this.ledger.flags.push({ id, kind: f.kind, receiptId: f.receiptId, moneyLineId: f.moneyLineId, resolvedAt: null });
+  }
+
+  /** Returns null when raised, or why it was skipped. */
+  raiseFlag(f: ProposedFlag): string | null {
     const label = f.receiptNo ? `receipt ${f.receiptNo}` : (f.moneyRef ?? "?");
-    let receiptId: string | null = null;
+    let receipt: MReceipt | undefined;
     let lineId: string | null = null;
     if (f.receiptNo) {
-      const [r] = await db.select().from(receipts).where(eq(receipts.receiptNo, normaliseReceiptNo(f.receiptNo))).limit(1);
-      if (!r) {
-        skipped.push(`${label}: not found`);
-        continue;
-      }
-      if (r.status === "verified" || r.status === "void") {
-        skipped.push(`${label}: already ${r.status}`);
-        continue;
-      }
-      receiptId = r.id;
+      receipt = this.receiptByNo.get(normaliseReceiptNo(f.receiptNo));
+      if (!receipt) return `${label}: not found`;
+      if (receipt.status === "verified" || receipt.status === "void") return `${label}: already ${receipt.status}`;
     }
     if (f.moneyRef) {
       try {
-        lineId = (await findLine(f.moneyRef)).id;
+        lineId = this.line(f.moneyRef).id;
       } catch (e) {
-        skipped.push(`${label}: ${(e as Error).message}`);
-        continue;
+        return `${label}: ${(e as Error).message}`;
       }
     }
-    if (f.kind === "no_receipt" ? !lineId : !receiptId) {
-      skipped.push(`${label}: ${f.kind === "no_receipt" ? "needs moneyRef" : "needs receiptNo"}`);
-      continue;
-    }
-    const open = await db
-      .select({ id: flags.id })
-      .from(flags)
-      .where(
-        and(
-          eq(flags.kind, f.kind),
-          isNull(flags.resolvedAt),
-          receiptId ? eq(flags.receiptId, receiptId) : eq(flags.moneyLineId, lineId!),
-        ),
-      )
-      .limit(1);
-    if (open.length) {
-      skipped.push(`${label}: already flagged`);
-      continue;
-    }
-    await db.transaction(async (tx) => {
-      await tx.insert(flags).values({
-        id: crypto.randomUUID(),
-        kind: f.kind,
-        receiptId,
-        moneyLineId: lineId,
-        note: f.note.trim().slice(0, 500),
-        ownerEmail,
-      });
-      if (receiptId) await tx.update(receipts).set({ status: "flagged" }).where(eq(receipts.id, receiptId));
-    });
-    raised++;
+    if (f.kind === "no_receipt" ? !lineId : !receipt) return `${label}: ${f.kind === "no_receipt" ? "needs moneyRef" : "needs receiptNo"}`;
+    const open = this.ledger.flags.some(
+      (x) => x.kind === f.kind && !x.resolvedAt && (receipt ? x.receiptId === receipt.id : x.moneyLineId === lineId),
+    );
+    if (open) return `${label}: already flagged`;
+    this.addFlag({ kind: f.kind, receiptId: receipt?.id ?? null, moneyLineId: lineId, note: f.note.trim().slice(0, 500) });
+    if (receipt) this.setStatus(receipt, "flagged");
+    return null;
   }
+
+  /** Writes every decision in one transaction: a few bulk statements, whatever the number of receipts. */
+  async commit(): Promise<void> {
+    if (!this.newMatches.length && !this.newFlags.length && !this.statusChanges.size && !this.resolvedFlagIds.size) return;
+    const byStatus = new Map<string, string[]>();
+    for (const [id, status] of this.statusChanges) byStatus.set(status, [...(byStatus.get(status) ?? []), id]);
+    await getDb().transaction(async (tx) => {
+      if (this.newMatches.length) await tx.insert(matches).values(this.newMatches);
+      if (this.newFlags.length) await tx.insert(flags).values(this.newFlags);
+      for (const [status, ids] of byStatus) {
+        await tx.update(receipts).set({ status: status as "unchecked" | "verified" | "flagged" | "void" }).where(inArray(receipts.id, ids));
+      }
+      if (this.resolvedFlagIds.size) {
+        await tx
+          .update(flags)
+          .set({ resolution: "auto: a receipt was found for this payment", resolvedBy: this.owner, resolvedAt: this.stamp })
+          .where(and(inArray(flags.id, [...this.resolvedFlagIds]), isNull(flags.resolvedAt)));
+      }
+    });
+  }
+}
+
+export async function recordMatches(items: ProposedMatch[], ownerEmail: string): Promise<RecordOutcome[]> {
+  const plan = new CheckPlan(await loadLedger(), ownerEmail);
+  const out = items.map((item) => plan.recordMatch(item));
+  await plan.commit();
+  return out;
+}
+
+export async function raiseFlags(items: ProposedFlag[], ownerEmail: string) {
+  const plan = new CheckPlan(await loadLedger(), ownerEmail);
+  const skipped: string[] = [];
+  let raised = 0;
+  for (const f of items) {
+    const why = plan.raiseFlag(f);
+    if (why) skipped.push(why);
+    else raised++;
+  }
+  await plan.commit();
   return { raised, skipped };
 }
 
@@ -404,27 +425,30 @@ export async function resolveFlag(input: ResolveInput, who: string): Promise<{ m
  * agent does when it passes suggestions through. Deterministic: no model involved.
  */
 export async function runFullCheck(who: string, pageSize = 40) {
+  const plan = new CheckPlan(await loadLedger(), who);
   let pages = 0;
   let verified = 0;
   let flaggedByMatch = 0;
   let flagsRaised = 0;
   const notSaved: string[] = [];
-  for (; pages < 20; ) {
-    const page = suggestNextPage(await loadLedger(), pageSize);
+  for (; pages < 50; ) {
+    const page = suggestNextPage(plan.ledger, pageSize);
     if (page.toRecord.length === 0 && page.toFlag.length === 0 && page.receiptsInPage === 0) break;
     pages++;
-    for (const o of await recordMatches(page.toRecord, who)) {
+    for (const item of page.toRecord) {
+      const o = plan.recordMatch(item);
       if (o.outcome === "verified") verified += o.receiptNos.length;
       else if (o.outcome === "flagged") flaggedByMatch += o.receiptNos.length;
       else notSaved.push(`${o.receiptNos.join(", ")}: ${o.detail}`);
     }
-    if (page.toFlag.length) {
-      const r = await raiseFlags(page.toFlag, who);
-      flagsRaised += r.raised;
-      notSaved.push(...r.skipped);
+    for (const f of page.toFlag) {
+      const why = plan.raiseFlag(f);
+      if (why) notSaved.push(why);
+      else flagsRaised++;
     }
     if (page.receiptsInPage === 0 && page.done) break;
   }
+  await plan.commit();
   return { pages, verified, flaggedByMatch, flagsRaised, notSaved };
 }
 
@@ -432,24 +456,30 @@ export async function runFullCheck(who: string, pageSize = 40) {
 export async function getSummary() {
   const db = getDb();
   const n = sql<number>`count(*)::int`;
-  const statusRows = await db.select({ status: receipts.status, n }).from(receipts).groupBy(receipts.status);
+  // Independent reads, sent together: on a remote database this is one wait, not several.
+  const [statusRows, openFlagRows, owing, [verifiedSum], studentCount, lineRows] = await Promise.all([
+    db.select({ status: receipts.status, n }).from(receipts).groupBy(receipts.status),
+    db.select({ kind: flags.kind, n }).from(flags).where(isNull(flags.resolvedAt)).groupBy(flags.kind),
+    db
+      .select({
+        id: students.id,
+        balance: sql<number>`(${students.termFeePesewas} - coalesce(sum(${receipts.amountPesewas}), 0))::int`,
+      })
+      .from(students)
+      .leftJoin(receipts, and(eq(receipts.studentId, students.id), eq(receipts.status, "verified")))
+      .groupBy(students.id, students.termFeePesewas)
+      .having(sql`${students.termFeePesewas} > coalesce(sum(${receipts.amountPesewas}), 0)`),
+    db
+      .select({ total: sql<number>`coalesce(sum(${receipts.amountPesewas}), 0)::int` })
+      .from(receipts)
+      .where(eq(receipts.status, "verified")),
+    db.select({ n }).from(students),
+    db
+      .select({ n })
+      .from(moneyLines)
+      .where(sql`not exists (select 1 from ${matches} where ${matches.moneyLineId} = ${moneyLines.id} and ${matches.state} <> 'rejected')`),
+  ]);
   const by = (s: string) => Number(statusRows.find((r) => r.status === s)?.n ?? 0);
-  const openFlagRows = await db.select({ kind: flags.kind, n }).from(flags).where(isNull(flags.resolvedAt)).groupBy(flags.kind);
-  const owing = await db
-    .select({
-      id: students.id,
-      balance: sql<number>`(${students.termFeePesewas} - coalesce(sum(${receipts.amountPesewas}), 0))::int`,
-    })
-    .from(students)
-    .leftJoin(receipts, and(eq(receipts.studentId, students.id), eq(receipts.status, "verified")))
-    .groupBy(students.id, students.termFeePesewas)
-    .having(sql`${students.termFeePesewas} > coalesce(sum(${receipts.amountPesewas}), 0)`);
-  const [verifiedSum] = await db
-    .select({ total: sql<number>`coalesce(sum(${receipts.amountPesewas}), 0)::int` })
-    .from(receipts)
-    .where(eq(receipts.status, "verified"));
-  const ledger = await loadLedger();
-  const taken = new Set(ledger.matches.filter((m) => m.state !== "rejected").map((m) => m.moneyLineId));
   const receiptsTotal = by("unchecked") + by("verified") + by("flagged");
   return {
     receipts: receiptsTotal,
@@ -460,8 +490,8 @@ export async function getSummary() {
     openFlags: openFlagRows.reduce((a, r) => a + Number(r.n), 0),
     openFlagsByKind: Object.fromEntries(openFlagRows.map((r) => [r.kind, Number(r.n)])) as Record<string, number>,
     studentsOwing: owing.length,
-    students: ledger.students.length,
-    moneyLinesUnmatched: ledger.lines.filter((l) => !taken.has(l.id)).length,
+    students: Number(studentCount[0]?.n ?? 0),
+    moneyLinesUnmatched: Number(lineRows[0]?.n ?? 0),
     verifiedGhs: pesewasToGhs(Number(verifiedSum?.total ?? 0)),
     owedGhs: pesewasToGhs(owing.reduce((t, o) => t + Number(o.balance), 0)),
     headline: `${by("verified")} of ${receiptsTotal} receipts verified · ${by("flagged")} flagged · ${owing.length} students owing`,
