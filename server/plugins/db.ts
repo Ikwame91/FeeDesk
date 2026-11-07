@@ -78,6 +78,33 @@ ALTER TABLE matches ADD CONSTRAINT matches_state_check CHECK (state IN ('auto', 
 ALTER TABLE flags ADD COLUMN IF NOT EXISTS match_id TEXT;
 CREATE INDEX IF NOT EXISTS matches_money_line_idx ON matches (money_line_id)`,
   },
+  {
+    version: 3,
+    name: "feedesk-photo-capture",
+    // Rows read from a photo of a receipt-book page are drafts until the bursar confirms them.
+    sql: `CREATE TABLE IF NOT EXISTS capture_batches (
+  id TEXT PRIMARY KEY,
+  status TEXT NOT NULL DEFAULT 'reading' CHECK (status IN ('reading', 'ready', 'done')),
+  owner_email TEXT NOT NULL DEFAULT 'local@localhost',
+  created_at TEXT NOT NULL DEFAULT (now())
+);
+CREATE TABLE IF NOT EXISTS capture_rows (
+  id TEXT PRIMARY KEY,
+  batch_id TEXT NOT NULL REFERENCES capture_batches(id),
+  position INTEGER NOT NULL,
+  receipt_no TEXT NOT NULL DEFAULT '',
+  date TEXT NOT NULL DEFAULT '',
+  student_name TEXT NOT NULL DEFAULT '',
+  class_name TEXT NOT NULL DEFAULT '',
+  amount_ghs TEXT NOT NULL DEFAULT '',
+  method TEXT NOT NULL DEFAULT '',
+  unclear TEXT NOT NULL DEFAULT '[]',
+  added_receipt_no TEXT,
+  owner_email TEXT NOT NULL DEFAULT 'local@localhost',
+  created_at TEXT NOT NULL DEFAULT (now())
+);
+CREATE INDEX IF NOT EXISTS capture_rows_batch_idx ON capture_rows (batch_id, position)`,
+  },
 ];
 
 export default runMigrations(FEEDESK_MIGRATIONS, { table: "feedesk_migrations" });

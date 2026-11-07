@@ -21,7 +21,7 @@
   --secondary: 75 12% 87%;
   --secondary-foreground: 156 9% 11%;
   --muted: 75 12% 88%;
-  --muted-foreground: 137 4% 36%;
+  --muted-foreground: 137 5% 30%;
   --accent: 75 12% 87%;
   --accent-foreground: 156 9% 11%;
   --destructive: 2 56% 35%;
@@ -31,7 +31,7 @@
   --ring: 2 56% 35%;
   --radius: 0.25rem;
   --sidebar-background: 75 12% 89%;
-  --sidebar-foreground: 137 4% 36%;
+  --sidebar-foreground: 137 5% 30%;
   --sidebar-primary: 156 9% 11%;
   --sidebar-primary-foreground: 70 14% 92%;
   --sidebar-accent: 75 11% 84%;
@@ -247,7 +247,7 @@
   --secondary: 150 7% 15%;
   --secondary-foreground: 45 25% 88%;
   --muted: 150 7% 14%;
-  --muted-foreground: 135 5% 62%;
+  --muted-foreground: 135 6% 69%;
   --accent: 150 7% 15%;
   --accent-foreground: 45 25% 88%;
   --destructive: 7 52% 62%;
@@ -328,3 +328,14 @@
     radial-gradient(22% 46% at 24% 48%, hsl(160 30% 30% / 0.22), transparent),
     radial-gradient(16% 28% at 50% 70%, hsl(42 40% 35% / 0.14), transparent);
 }
+
+/* Placeholders read as hints, never as values already filled in. */
+input::placeholder, textarea::placeholder {
+  color: hsl(var(--muted-foreground) / 0.5);
+  font-style: italic;
+}
+
+/* While the agent reads a photo, the seal turns slowly. */
+@keyframes feedesk-reading { to { transform: rotate(360deg); } }
+.feedesk-reading { animation: feedesk-reading 9s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .feedesk-reading { animation: none; } }

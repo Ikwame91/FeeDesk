@@ -48,12 +48,13 @@ been configured or used; see Known issues.
 flowchart LR
   subgraph Browser
     D["/dashboard<br/>headline, CSV uploads,<br/>Add receipt, Check buttons"]
+    P["/capture<br/>photo + editable rows"]
     F["/flags<br/>review queue cards"]
     C["Agent chat panel<br/>(photo reading, chat commands)"]
   end
 
   subgraph Actions["actions/ (one file = UI hook + agent tool + HTTP + CLI)"]
-    A1["import-students<br/>import-statement<br/>add-receipt"]
+    A1["import-students<br/>import-statement<br/>add-receipt<br/>save/confirm-capture"]
     A2["run-check · find-candidates<br/>record-match · raise-flag"]
     A3["resolve-flag · list-flags<br/>get-summary · list-receipts · list-students"]
     A4["load-demo-data (CLI only)"]
@@ -71,6 +72,8 @@ flowchart LR
   SEED["seed/*.csv + answer-key.json<br/>(scripts/generate-demo-data.ts)"]
 
   D --> A1 & A2 & A3
+  P --> A1
+  P -->|photo| C
   F --> A3
   C <--> LLM
   C -->|tool calls| A1 & A2 & A3
@@ -105,13 +108,13 @@ flowchart LR
 
 | Area | Files |
 |---|---|
-| Screens | `app/routes/dashboard.tsx`, `app/routes/flags.tsx`, `app/routes/school.tsx` (card wording from `app/lib/explain-flag.ts`), sidebar links in `app/components/layout/Sidebar.tsx` |
+| Screens | `app/routes/dashboard.tsx`, `app/routes/capture.tsx`, `app/routes/flags.tsx`, `app/routes/school.tsx` (card wording from `app/lib/explain-flag.ts`), sidebar links in `app/components/layout/Sidebar.tsx` |
 | Actions | `actions/*.ts` (FeeDesk: add-receipt, import-*, list-*, find-candidates, record-match, raise-flag, resolve-flag, get-summary, run-check, load-demo-data) |
 | Logic | `server/lib/` (money, phone, csv, importers incl. the MTN layout, receipt-rules, ledger, matching, reconcile, school) |
 | Data | `server/db/schema.ts`, `server/plugins/db.ts` |
 | Agent | `AGENTS.md` (FeeDesk section first), `server/plugins/agent-chat.ts` (first-turn tools, system prompt) |
 | Demo data | `scripts/generate-demo-data.ts` → `seed/`, loaded by `actions/load-demo-data.ts` |
-| Tests | `server/lib/*.test.ts`, `app/lib/*.test.ts`, `tests/*.test.ts` (47 tests, incl. the full check against `seed/answer-key.json`) |
+| Tests | `server/lib/*.test.ts`, `app/lib/*.test.ts`, `tests/*.test.ts` (51 tests, incl. the full check against `seed/answer-key.json`) |
 
 ---
 
@@ -181,7 +184,14 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 | Date | What changed | Why | Key files | Commit |
 |---|---|---|---|---|
-| 7 Nov | **Phones:** one shared rule turns every Ghana number into 0XXXXXXXXX (233…, +233…, 00233…, 9 digits, spaces/dashes) in every import and in matching; matching also finds the parent's name in a payment's REF. **MTN statements:** `import-statement` detects MTN's own export (TRANSACTION DATE … F_ID, REF, OVA), keeps only money paid *to* the school's number, uses F_ID as the transaction ID, reads dates like `06-Nov-2026 11:00:13 PM`, accepts amounts with any number of decimals (trailing zeros only), and for bank / cross-network payments takes the real sender's phone from REF. A fictional MTN-layout test file. **School settings:** `/school` page + `get-school-settings` / `update-school-settings` (name, term, MoMo number); the school line on every page now comes from settings, not code | Kwame supplied the real MTN export's headers; FeeDesk should work for any school, not just the demo one | `server/lib/phone.ts`, `server/lib/importers.ts`, `server/lib/money.ts`, `server/lib/matching.ts`, `server/lib/school.ts`, `actions/import-statement.ts`, `actions/*-school-settings.ts`, `app/routes/school.tsx`, `tests/mtn-statement.test.ts`, `tests/fixtures/mtn-momo-statement.csv` | (this commit) |
+| 7 Nov | **Phones:** one shared rule turns every Ghana number into 0XXXXXXXXX (233…, +233…, 00233…, 9 digits, spaces/dashes) in every import and in matching; matching also finds the parent's name in a payment's REF. **MTN statements:** `import-statement` detects MTN's own export (TRANSACTION DATE … F_ID, REF, OVA), keeps only money paid *to* the school's number, uses F_ID as the transaction ID, reads dates like `06-Nov-2026 11:00:13 PM`, accepts amounts with any number of decimals (trailing zeros only), and for bank / cross-network payments takes the real sender's phone from REF. A fictional MTN-layout test file. **School settings:** `/school` page + `get-school-settings` / `update-school-settings` (name, term, MoMo number); the school line on every page now comes from settings, not code | Kwame supplied the real MTN export's headers; FeeDesk should work for any school, not just the demo one | `server/lib/phone.ts`, `server/lib/importers.ts`, `server/lib/money.ts`, `server/lib/matching.ts`, `server/lib/school.ts`, `actions/import-statement.ts`, `actions/*-school-settings.ts`, `app/routes/school.tsx`, `tests/mtn-statement.test.ts`, `tests/fixtures/mtn-momo-statement.csv` | `263a833` |
+
+
+### Phase 10 — Photo capture and review feedback (Sat 7 Nov)
+
+| Date | What changed | Why | Key files | Commit |
+|---|---|---|---|---|
+| 7 Nov | **Photo capture screen** (`/capture`): snap or choose a photo of a receipt-book page → the page hands it to the agent (`sendToAgentChat` with the image) → the agent saves every row with `save-capture-rows` as drafts → the bursar checks an editable table beside the photo (unclear fields highlighted; unknown student, used receipt number, bad date, class mismatch shown per row) → **Add N receipts** (`confirm-capture`) adds them through the normal receipt rules as `source: "photo"`; failed rows stay with their reason. Rows can also be typed (no AI). New tables `capture_batches`, `capture_rows` (migration `feedesk-photo-capture`). **Review fixes** (from a Grok review): the to-review count says what it is made of; Check buttons always visible; a real "Snap a receipt page" button; correct tags (Duplicate, Banked later?); one wording per action shared by Overview and review page; numerals instead of spelled-out numbers; hint placeholders; darker small text | The photo is the demo's hero; the review found confusing counts and missing entry points | `app/routes/capture.tsx`, `server/lib/capture.ts`, `actions/{start,save,get,confirm}-capture*.ts`, `server/plugins/db.ts`, `app/lib/explain-flag.ts`, `app/routes/{dashboard,flags}.tsx`, `app/global.css`, `AGENTS.md`, `tests/capture.test.ts` | (this commit) |
 
 ---
 
@@ -211,6 +221,9 @@ agent; merges on GitHub show as Isaac Agyapong.
 | 20 | Real sender of pass-through payments | When FROM NO. isn't a mobile or FROM NAME looks like a bank/network/aggregator, take the phone from REF; matching also looks for the parent's name in REF | Kwame: bank and cross-network payments put the real sender in REF | Ignore REF (those payments would never match) |
 | 21 | School details | One settings record (`feedesk-school` in the framework's settings table): name, term, MoMo number | One school per installation (decision 5); avoids school names in code | A schools table (only needed for many schools per installation) |
 | 22 | PDF statements | Not parsed by FeeDesk; the agent turns a PDF into CSV text and calls `import-statement` | Kwame's call; PDF layouts vary and the agent can read them | A PDF parser in the app |
+| 23 | Photo rows | The agent writes rows to draft tables (`save-capture-rows`); only `confirm-capture`, pressed by the bursar, turns them into receipts | Handoff rule: nothing saved before confirmation; the screen and the agent share the same drafts, and the bursar edits beside the photo | The agent showing a table in chat and calling `add-receipt` itself (earlier rule) |
+| 24 | Getting the photo to the agent | The page sends the downscaled photo (≤1600px JPEG) with `sendToAgentChat({ images })`; the photo is not stored | Works without configured file storage; nothing large in SQL | Upload to file storage first (needs a provider; only matters if the photo must survive a reload) |
+| 25 | Numbers on screen | Numerals ("12 to review") instead of words | Review feedback: numerals scan faster, words break at large counts | Cheque-style words (part of the Banknote idea) |
 
 ---
 
@@ -218,8 +231,6 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 **Not built yet (from the plan)**
 - No terms in the data: fees, balances and receipts are all for one term (the term on the School page is a label only).
-- **Photo capture screen**: photo → editable rows beside the image → Confirm. Today photos only work in the
-  chat, with the agent showing a table to confirm.
 - **Students screen** (fee, paid, balance, status) and **reminder drafts** (`draft-reminders`).
 - **Deployment.** Nothing is hosted. `netlify.toml` is still the template's: it has the template's Google
   Analytics/Tag Manager IDs (`GA_MEASUREMENT_ID`, `GTM_CONTAINER_ID`) and the template's
@@ -237,6 +248,8 @@ agent; merges on GitHub show as Isaac Agyapong.
   no longer linked). The template logo is replaced by the FeeDesk wordmark.
 
 **Shortcuts and risks**
+- The photo on the Capture screen lives only in that browser tab (not stored); after a reload the rows remain but the photo is gone.
+- The agent reading a photo from the Capture screen (`sendToAgentChat` with an image, then `save-capture-rows`) has not been run with a real model in this environment; the tests and browser checks play the agent's part through the same action.
 - No per-user access control (decision 5). Fine for a one-school demo; not for real use.
 - Status columns (`receipts.status`, `matches.state`) are plain text with CHECK constraints, not the
   framework's `defineMachine` state machines.
@@ -265,5 +278,5 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 ## 6. Last updated
 
-**7 Nov 2026**. Covers every commit up to **`5a45da1`** ("Redesign: the Banknote direction"), plus the
-statement-formats and school-settings commit in Phase 9.
+**7 Nov 2026**. Covers every commit up to **`263a833`** ("Read real MTN MoMo statements; normalise phones;
+add School settings"), plus the photo-capture commit in Phase 10.

@@ -5,12 +5,12 @@ import {
   useActionQuery,
 } from "@agent-native/core/client/hooks";
 import { useSetPageTitle } from "@agent-native/toolkit/app-shell";
-import { IconCheck } from "@tabler/icons-react";
+import { IconCamera, IconCheck } from "@tabler/icons-react";
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 
-import { numberWord, Seal } from "@/components/feedesk/Seal";
+import { Seal } from "@/components/feedesk/Seal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,7 +53,7 @@ export default function DashboardRoute() {
     });
   }
 
-  const canCheck = !!s && s.unchecked > 0 && !quickCheck.isPending;
+  const canCheck = !!s && s.receipts > 0 && !quickCheck.isPending;
 
   return (
     <div className="h-full overflow-auto">
@@ -63,12 +63,12 @@ export default function DashboardRoute() {
           <p className="text-sm text-muted-foreground">
             {school ? [school.schoolName, school.termLabel].filter(Boolean).join(" · ") : " "}
           </p>
-          {s && s.receipts > 0 && s.unchecked === 0 ? (
-            <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-              <IconCheck className="size-4" strokeWidth={2} /> Every receipt checked
-            </p>
-          ) : (
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
+            {s && s.receipts > 0 && s.unchecked === 0 && (
+              <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                <IconCheck className="size-4" strokeWidth={2} /> Every receipt checked
+              </span>
+            )}
             <button
               type="button"
               onClick={() => quickCheck.mutate({})}
@@ -78,11 +78,10 @@ export default function DashboardRoute() {
             >
               {quickCheck.isPending ? "Checking…" : "Check without AI"}
             </button>
-            <Button onClick={checkWithAgent} disabled={!canCheck}>
-              Check new receipts
+            <Button onClick={checkWithAgent} disabled={!s || s.receipts === 0 || quickCheck.isPending}>
+              Check everything
             </Button>
           </div>
-          )}
         </header>
 
         {/* Hero: one number, the seal */}
@@ -215,7 +214,7 @@ function NeedsYou({
     <section className="mt-12 border-t-[1.5px] border-foreground">
       <div className="flex items-baseline justify-between pb-1 pt-4">
         <h2 className="font-display text-2xl font-semibold">
-          {numberWord(n)} need{n === 1 ? "s" : ""} you
+          {n} need{n === 1 ? "s" : ""} you
         </h2>
         <Link to="/flags" className="text-sm font-semibold text-oxblood hover:underline">
           Review all →
@@ -308,13 +307,20 @@ function AddReceiptForm() {
 
   return (
     <section className="flex flex-col">
-      <h3 className="font-display text-xl font-semibold">Write a receipt</h3>
-      <p className="mt-1 text-sm text-muted-foreground">As it is in the receipt book. Or tell the agent, or send it a photo of the page.</p>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h3 className="font-display text-xl font-semibold">Write a receipt</h3>
+      </div>
+      <Button asChild className="mt-3 h-11 justify-start gap-2 text-[15px]">
+        <Link to="/capture">
+          <IconCamera className="size-5" strokeWidth={1.7} /> Snap a receipt page
+        </Link>
+      </Button>
+      <p className="mt-2 text-sm text-muted-foreground">The agent reads every row; you check them before anything is saved. Or type one below.</p>
       <form onSubmit={submit} className="mt-4 flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="receipt-no">Receipt №</Label>
-            <Input id="receipt-no" inputMode="numeric" required value={form.receiptNo} onChange={(e) => set("receiptNo", e.target.value)} placeholder="1120" className="tabular bg-card" />
+            <Input id="receipt-no" inputMode="numeric" required value={form.receiptNo} onChange={(e) => set("receiptNo", e.target.value)} placeholder="e.g. 1120" className="tabular bg-card" />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="receipt-date">Date on the receipt</Label>
@@ -345,7 +351,7 @@ function AddReceiptForm() {
               title="An amount like 450.50"
               value={form.amountGhs}
               onChange={(e) => set("amountGhs", e.target.value)}
-              placeholder="450.00"
+              placeholder="e.g. 450.00"
               className="tabular bg-card"
             />
           </div>

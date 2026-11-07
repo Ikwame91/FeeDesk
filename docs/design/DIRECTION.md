@@ -108,4 +108,10 @@ the missing receipt), the entry dims and a small guilloché seal reading *settle
   do, one primary action, "Mark as a real problem", "Ask the agent", evidence folded away.
 - Sidebar: **Fee*Desk*** wordmark replaces the template logo; Overview / To review (count) / New chat.
 
-Not designed yet: the photo-capture screen (photo → editable rows → confirm), Students, Reminders.
+- **Capture** (`/capture`): "Read a receipt page"; the photo on one side (above the table when the agent
+  panel leaves too little room), the rows as an editable table with unclear cells in oxblood and a
+  plain note per row, "Add N receipts"; while the agent reads, the seal turns slowly.
+- Review feedback applied (Grok): count breakdown under "12 to review", numerals not words, check buttons
+  always visible, one wording per action, hint placeholders, secondary ink darkened (30% / 69%).
+
+Not designed yet: Students, Reminders.

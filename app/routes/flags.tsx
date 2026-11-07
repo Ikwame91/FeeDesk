@@ -10,12 +10,12 @@ import { useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router";
 import { toast } from "sonner";
 
-import { numberWord, Seal } from "@/components/feedesk/Seal";
+import { Seal } from "@/components/feedesk/Seal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { APP_TITLE } from "@/lib/app-config";
-import { dayText, explainFlag, flagLine, ghsText, titleCase } from "@/lib/explain-flag";
+import { ACTION, dayText, explainFlag, flagLine, flagTag, ghsText, titleCase } from "@/lib/explain-flag";
 import { cn } from "@/lib/utils";
 
 export function meta() {
@@ -92,13 +92,13 @@ export default function FlagsRoute() {
             <Skeleton className="mt-4 h-14 w-96" />
           ) : (
             <h1 className="mt-3 font-display text-[clamp(40px,5vw,56px)] font-semibold leading-none tracking-[-0.02em]">
-              {n === 0 ? "Nothing to review" : `${numberWord(n)} to review`}
+              {n === 0 ? "Nothing to review" : `${n} to review`}
             </h1>
           )}
+          {s && n > 0 && <p className="tabular mt-3 text-[15px]">{breakdown(flags)}</p>}
           {s && (
-            <p className="tabular mt-3 text-sm text-muted-foreground">
-              {s.verified} of {s.receipts} receipts backed by money · {s.flagged} flagged · {s.studentsOwing} students owe{" "}
-              {ghsText(s.owedGhs)}
+            <p className="tabular mt-1 text-sm text-muted-foreground">
+              {s.verified} of {s.receipts} receipts are backed by money · {s.studentsOwing} students owe {ghsText(s.owedGhs)}
             </p>
           )}
         </header>
@@ -139,6 +139,19 @@ export default function FlagsRoute() {
       </div>
     </div>
   );
+}
+
+/** "11 about receipts (13 receipts) · 7 payments with no receipt" — what the count is made of. */
+function breakdown(flags: Flag[]): string {
+  const payments = flags.filter((f) => f.kind === "no_receipt").length;
+  const aboutReceipts = flags.length - payments;
+  const receiptCount = flags
+    .filter((f) => f.kind !== "no_receipt")
+    .reduce((t, f) => t + (f.proposedMatch?.receipts.filter(Boolean).length || (f.receipt ? 1 : 0)), 0);
+  const parts = [];
+  if (aboutReceipts) parts.push(`${aboutReceipts} about receipts${receiptCount !== aboutReceipts ? ` (${receiptCount} receipts)` : ""}`);
+  if (payments) parts.push(`${payments} payment${payments === 1 ? "" : "s"} with no receipt`);
+  return parts.join(" · ");
 }
 
 interface FlagReceipt {
@@ -216,7 +229,7 @@ function FlagEntry({
           {line.ref === "—" ? "—" : `№ ${line.ref}`}
         </span>
         <span className={cn("text-xs font-semibold sm:mt-2 sm:block", ex.tone === "red" ? "text-oxblood" : "text-muted-foreground")}>
-          {ex.tone === "red" ? "Money missing" : f.kind === "no_receipt" ? "No receipt" : "Mismatch"}
+          {flagTag(f)}
         </span>
       </div>
 
@@ -267,22 +280,22 @@ function FlagEntry({
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3" onClick={(e) => e.stopPropagation()}>
           {f.kind === "amount_diff" && f.moneyLine && (
             <Button size="sm" onClick={() => onResolve("fix_amount")}>
-              Fix to {ghsText(f.moneyLine.amountGhs)}
+              {ACTION.fixTo(f.moneyLine.amountGhs)}
             </Button>
           )}
           {f.kind === "no_money" && f.proposedMatch && (
             <Button size="sm" onClick={() => onResolve("accept_match", { note: "Confirmed banked from the review page" })}>
-              Yes, banked together
+              {ACTION.confirmDeposit}
             </Button>
           )}
           {f.kind === "no_money" && !f.proposedMatch && (
             <Button size="sm" variant="outline" className="border-foreground" onClick={() => askAgent(`Receipt ${f.receipt?.receiptNo} was banked separately, in the deposit of `)}>
-              It was banked separately…
+              {ACTION.bankedSeparately}
             </Button>
           )}
           {f.kind === "duplicate" && (
             <Button size="sm" onClick={() => onResolve("void_duplicate")}>
-              Void the extra receipt
+              {ACTION.voidDuplicate}
             </Button>
           )}
           {f.kind === "no_receipt" && (
@@ -296,12 +309,12 @@ function FlagEntry({
                 aria-label="Number of the receipt to write"
               />
               <Button size="sm" type="submit" disabled={!receiptNo.trim()}>
-                Write receipt{f.likelyStudent ? ` for ${f.likelyStudent.name.split(" ")[0]}` : ""}
+                {ACTION.writeReceipt}{f.likelyStudent ? ` for ${f.likelyStudent.name.split(" ")[0]}` : ""}
               </Button>
             </form>
           )}
           <button type="button" onClick={() => onResolve("real_problem")} className="text-sm font-semibold underline-offset-4 hover:underline">
-            Mark as a real problem
+            {ACTION.realProblem}
           </button>
           <button type="button" onClick={() => askAgent()} className="ml-auto flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <IconMessageCircle className="size-4" strokeWidth={1.6} /> Ask the agent

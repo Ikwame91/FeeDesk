@@ -16,6 +16,8 @@ const INITIAL_TOOL_NAMES = [
   "resolve-flag",
   "list-flags",
   "get-summary",
+  "save-capture-rows",
+  "get-capture",
   "add-receipt",
   "list-receipts",
   "list-students",

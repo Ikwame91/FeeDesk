@@ -82,3 +82,28 @@ export const flags = pgTable("flags", {
   ownerEmail: text("owner_email").notNull().default("local@localhost"),
   createdAt: text("created_at").notNull().default(sql`now()`),
 });
+
+/** A photo of a receipt-book page being read into rows. Drafts until confirmed. */
+export const captureBatches = pgTable("capture_batches", {
+  id: text("id").primaryKey(),
+  status: text("status").$type<"reading" | "ready" | "done">().notNull().default("reading"),
+  ownerEmail: text("owner_email").notNull().default("local@localhost"),
+  createdAt: text("created_at").notNull().default(sql`now()`),
+});
+
+/** One row as read from the photo, kept as text exactly as entered until it becomes a receipt. */
+export const captureRows = pgTable("capture_rows", {
+  id: text("id").primaryKey(),
+  batchId: text("batch_id").notNull(),
+  position: integer("position").notNull(),
+  receiptNo: text("receipt_no").notNull().default(""),
+  date: text("date").notNull().default(""),
+  studentName: text("student_name").notNull().default(""),
+  className: text("class_name").notNull().default(""),
+  amountGhs: text("amount_ghs").notNull().default(""),
+  method: text("method").notNull().default(""),
+  unclear: text("unclear").notNull().default("[]"), // JSON array of field names the reader wasn't sure of
+  addedReceiptNo: text("added_receipt_no"),
+  ownerEmail: text("owner_email").notNull().default("local@localhost"),
+  createdAt: text("created_at").notNull().default(sql`now()`),
+});

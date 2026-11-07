@@ -20,6 +20,8 @@ export interface NavigationState {
   threadId?: string;
   /** Flags screen: the card the bursar has selected ("this one"). */
   flagId?: string;
+  /** Capture screen: the photo capture being checked. */
+  captureBatchId?: string;
 }
 
 export function useNavigationState() {
@@ -68,12 +70,14 @@ export function navigationStateForPath(pathname: string, searchParams?: URLSearc
   const threadId = threadIdFromPath(pathname);
   const view = viewForPath(pathname);
   const flagId = view === "flags" ? searchParams?.get("flag") : null;
+  const captureBatchId = view === "capture" ? searchParams?.get("batch") : null;
   return {
     view,
     path: pathname,
     publicPath: appPathFromLocalRoute(pathname),
     ...(threadId ? { threadId } : {}),
     ...(flagId ? { flagId } : {}),
+    ...(captureBatchId ? { captureBatchId } : {}),
   };
 }
 
@@ -83,6 +87,7 @@ function viewForPath(pathname: string): string {
   if (pathname.startsWith("/dashboard")) return "dashboard";
   if (pathname.startsWith("/flags")) return "flags";
   if (pathname.startsWith("/school")) return "school";
+  if (pathname.startsWith("/capture")) return "capture";
   if (pathname.startsWith("/database")) return "database";
   if (pathname.startsWith("/extensions")) return "extensions";
   if (pathname.startsWith("/observability")) return "observability";
@@ -107,6 +112,8 @@ function pathForView(view?: string): string {
       return "/flags";
     case "school":
       return "/school";
+    case "capture":
+      return "/capture";
     case "database":
       return "/database";
     case "extensions":

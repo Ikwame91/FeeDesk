@@ -103,6 +103,25 @@ export function explainFlag(f: ExplainFlagInput): FlagExplanation {
   return { tone: "amber", title: "Needs a look", happened: f.note, todo: "Ask the agent about this one, or mark it as a problem." };
 }
 
+/** The words for each decision, shared by the Overview list and the review page so they always agree. */
+export const ACTION = {
+  fixTo: (amountGhs: string) => `Fix to ${ghsText(amountGhs)}`,
+  voidDuplicate: "Void the extra receipt",
+  confirmDeposit: "Confirm the deposit",
+  bankedSeparately: "It was banked separately…",
+  writeReceipt: "Write the receipt",
+  realProblem: "Mark as a real problem",
+} as const;
+
+/** The short tag beside a flag's receipt number. */
+export function flagTag(f: ExplainFlagInput): string {
+  if (f.kind === "amount_diff") return "Amount differs";
+  if (f.kind === "duplicate") return "Duplicate";
+  if (f.kind === "no_receipt") return "No receipt";
+  if (f.kind === "no_money" && f.proposedMatch) return "Banked later?";
+  return "Money missing";
+}
+
 /** One line and an action word, for short lists such as the Overview's "need you" queue. */
 export function flagLine(f: ExplainFlagInput): { ref: string; line: string; action: string; missingMoney: boolean } {
   const r = f.receipt;
@@ -112,12 +131,12 @@ export function flagLine(f: ExplainFlagInput): { ref: string; line: string; acti
     return {
       ref: r.receiptNo,
       line: `${r.studentName}'s receipt says ${ghsText(r.amountGhs)}; ${payer} sent ${ghsText(m.amountGhs)}, ${dayText(m.date)}.`,
-      action: `Fix to ${ghsText(m.amountGhs)}`,
+      action: ACTION.fixTo(m.amountGhs),
       missingMoney: false,
     };
   }
   if (f.kind === "duplicate" && r) {
-    return { ref: r.receiptNo, line: `${r.studentName}: a second receipt for one ${ghsText(r.amountGhs)} payment.`, action: "Void duplicate", missingMoney: false };
+    return { ref: r.receiptNo, line: `${r.studentName}: a second receipt for one ${ghsText(r.amountGhs)} payment.`, action: ACTION.voidDuplicate, missingMoney: false };
   }
   if (f.kind === "no_money" && f.proposedMatch && m) {
     const rs = f.proposedMatch.receipts.filter((x): x is ExplainReceipt => !!x);
@@ -125,7 +144,7 @@ export function flagLine(f: ExplainFlagInput): { ref: string; line: string; acti
     return {
       ref: nos.length > 1 ? `${nos[0]}–${nos[nos.length - 1]!.slice(-2)}` : (nos[0] ?? ""),
       line: `${rs.length} cash receipts from ${rs[0] ? dayText(rs[0].date) : "one day"} match a ${ghsText(m.amountGhs)} deposit on ${dayText(m.date)}.`,
-      action: "Confirm deposit",
+      action: ACTION.confirmDeposit,
       missingMoney: false,
     };
   }
@@ -136,12 +155,12 @@ export function flagLine(f: ExplainFlagInput): { ref: string; line: string; acti
         r.method === "cash"
           ? `${ghsText(r.amountGhs)} cash from ${r.studentName}, ${dayText(r.date)}, never reached the bank.`
           : `${ghsText(r.amountGhs)} MoMo for ${r.studentName}, ${dayText(r.date)}: no payment arrived.`,
-      action: "Look into it",
+      action: ACTION.realProblem,
       missingMoney: true,
     };
   }
   if (f.kind === "no_receipt" && m) {
-    return { ref: "—", line: `${ghsText(m.amountGhs)} from ${payer}, ${dayText(m.date)}, arrived with no receipt.`, action: "Write receipt", missingMoney: false };
+    return { ref: "—", line: `${ghsText(m.amountGhs)} from ${payer}, ${dayText(m.date)}, arrived with no receipt.`, action: ACTION.writeReceipt, missingMoney: false };
   }
   return { ref: r?.receiptNo ?? "—", line: f.note, action: "Review", missingMoney: false };
 }
