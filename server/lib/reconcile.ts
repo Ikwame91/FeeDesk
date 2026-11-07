@@ -136,6 +136,15 @@ export async function recordMatches(items: ProposedMatch[], ownerEmail: string):
           .update(receipts)
           .set({ status: auto ? "verified" : "flagged" })
           .where(inArray(receipts.id, rs.map((r) => r.id)));
+        // A receipt has now turned up for this money, so an earlier "no receipt" flag is answered.
+        await tx
+          .update(flags)
+          .set({
+            resolution: `auto: receipt ${receiptNos.join(", ")} found for this payment`,
+            resolvedBy: ownerEmail,
+            resolvedAt: now(),
+          })
+          .where(and(eq(flags.moneyLineId, line.id), eq(flags.kind, "no_receipt"), isNull(flags.resolvedAt)));
         if (!auto) {
           const kind = sum !== line.amountPesewas ? "amount_diff" : "no_money";
           const lineLabel = line.source === "momo" ? "the MoMo payment" : "the bank deposit";

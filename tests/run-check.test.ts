@@ -36,3 +36,25 @@ it("run-check reaches the same mid-check state in one call, and a second run cha
 it("refuses callers who are not signed in", async () => {
   await expect(runCheck.run({}, undefined)).rejects.toThrow(/Sign in/);
 });
+
+it("closes 'money with no receipt' flags when the receipts turn up later", async () => {
+  const { getDb, schema } = await import("../server/db/index");
+  const { and, eq, isNull } = await import("drizzle-orm");
+  const db = getDb();
+  // Start again without the photo-page receipts, check, then add them and check again.
+  await db.delete(schema.flags);
+  await db.delete(schema.matches);
+  await db.delete(schema.receipts);
+  await addReceipts(parseReceiptsCsv(seed("receipts.csv")), "upload", who, { today: "2026-11-04" });
+  const openNoReceipt = async () =>
+    (await db.select().from(schema.flags).where(and(eq(schema.flags.kind, "no_receipt"), isNull(schema.flags.resolvedAt)))).length;
+
+  await runCheck.run({}, { userEmail: who } as never);
+  expect(await openNoReceipt()).toBe(9); // 3 planted + the 6 photo-page payments
+
+  await addReceipts(parseReceiptsCsv(seed("photo-page-receipts.csv")), "photo", who, { today: "2026-11-04" });
+  const after = await runCheck.run({}, { userEmail: who } as never);
+  expect(await openNoReceipt()).toBe(3);
+  expect(after.headline).toBe("108 of 119 receipts verified · 11 flagged · 17 students owing");
+  expect(after.openFlagsByKind).toEqual({ amount_diff: 4, duplicate: 2, no_money: 3, no_receipt: 3 });
+});
