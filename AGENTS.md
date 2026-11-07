@@ -63,3 +63,16 @@ Use `adding-a-feature` for functional parity and `frontend-design` for a user-fa
 Before building common workspace or agent UI, read `agent-native-toolkit`; for supported customization, read `customizing-agent-native`.
 
 - Guarded verification: run `pnpm agent-native:doctor`; fix findings before done.
+
+## Project history (required)
+
+`docs/PROJECT_HISTORY.md` is the project's living record. After completing any change that you commit:
+
+- Add a dated Timeline entry: what changed, why, key files, commit hash.
+- If you made a technical choice, add it to the Decisions log.
+- If you added a shortcut or left something unfinished, add it to Known issues; remove items you fixed.
+- Update the architecture section if the structure changed.
+- Update "Last updated" with the date and latest commit hash.
+
+Commit the history update together with the change itself. A commit can't contain its own hash: write
+"(this commit)" in that entry, then replace it with the real hash in the next history update.
