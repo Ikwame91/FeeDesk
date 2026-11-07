@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "migrate:production": "tsx scripts/migrate-production.ts",
-    "dev": "agent-native dev --open",
+    "dev": "node scripts/check-database-url.mjs && agent-native dev --open",
     "build": "agent-native build",
     "start": "agent-native start",
     "typecheck": "agent-native typecheck",
@@ -15,7 +15,7 @@
     "test": "vitest --run --passWithNoTests",
     "agent-native:doctor": "agent-native doctor",
     "demo:generate": "tsx scripts/generate-demo-data.ts",
-    "demo:load": "agent-native action load-demo-data"
+    "demo:load": "node scripts/check-database-url.mjs && agent-native action load-demo-data"
   },
   "dependencies": {
     "@agent-native/agentkit": "^0.223.0",
