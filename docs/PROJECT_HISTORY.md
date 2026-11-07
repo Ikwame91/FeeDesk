@@ -104,13 +104,13 @@ flowchart LR
 
 | Area | Files |
 |---|---|
-| Screens | `app/routes/dashboard.tsx`, `app/routes/flags.tsx`, sidebar links in `app/components/layout/Sidebar.tsx` |
+| Screens | `app/routes/dashboard.tsx`, `app/routes/flags.tsx` (card wording from `app/lib/explain-flag.ts`), sidebar links in `app/components/layout/Sidebar.tsx` |
 | Actions | `actions/*.ts` (FeeDesk: add-receipt, import-*, list-*, find-candidates, record-match, raise-flag, resolve-flag, get-summary, run-check, load-demo-data) |
 | Logic | `server/lib/` (money, csv, importers, receipt-rules, ledger, matching, reconcile) |
 | Data | `server/db/schema.ts`, `server/plugins/db.ts` |
 | Agent | `AGENTS.md` (FeeDesk section first), `server/plugins/agent-chat.ts` (first-turn tools, system prompt) |
 | Demo data | `scripts/generate-demo-data.ts` → `seed/`, loaded by `actions/load-demo-data.ts` |
-| Tests | `server/lib/*.test.ts`, `tests/*.test.ts` (31 tests, incl. the full check against `seed/answer-key.json`) |
+| Tests | `server/lib/*.test.ts`, `app/lib/*.test.ts`, `tests/*.test.ts` (35 tests, incl. the full check against `seed/answer-key.json`) |
 
 ---
 
@@ -166,7 +166,13 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 | Date | What changed | Why | Key files | Commit |
 |---|---|---|---|---|
-| 7 Nov | Added this file and the "Project history (required)" rule in `AGENTS.md`/`CLAUDE.md` | Owner asked for a living record kept up to date with every commit | `docs/PROJECT_HISTORY.md`, `AGENTS.md` | (this commit; hash recorded in the next update) |
+| 7 Nov | Added this file and the "Project history (required)" rule in `AGENTS.md`/`CLAUDE.md` | Owner asked for a living record kept up to date with every commit | `docs/PROJECT_HISTORY.md`, `AGENTS.md` | `41a5d3a` |
+
+### Phase 8 — UI clarity (Sat 7 Nov)
+
+| Date | What changed | Why | Key files | Commit |
+|---|---|---|---|---|
+| 7 Nov | Flag cards now say **What happened** and **What to do** in plain words (no confidence %, no `momo:` refs), with the raw evidence folded under "Evidence the check used"; cards are tinted by kind; the template's Home link is gone from the sidebar | Testing showed the cards were confusing; the Home page was a template leftover | `app/lib/explain-flag.ts` (+ test), `app/routes/flags.tsx`, `app/components/layout/Sidebar.tsx` | (this commit) |
 
 ---
 
@@ -205,13 +211,13 @@ agent; merges on GitHub show as Isaac Agyapong.
   `BETTER_AUTH_SECRET` and file storage for photos are also still needed.
 
 **UX found confusing in testing**
-- Flag cards don't explain themselves in plain words (notes mention "70% confidence", raw `momo:` refs).
+- Flag card colours (amber / red / blue by kind) are provisional. App Designer's rules count several hues as "confetti"; the redesign should settle on one accent plus semantic red.
 - The Add receipt form defaults the date to today. Typing old receipts without changing it creates false
   "No money found" + "Money with no receipt" pairs.
 - "Banked separately…" on a cash flag with no proposed deposit only opens the agent chat; there is no
   deposit picker.
-- Template leftovers are visible: the "Home / Get started" page with Agent-Native docs links, the template
-  logo, and the Chat sidebar items.
+- Template leftovers still visible: the template logo, and the chat-first sidebar. The Home link is gone,
+  but `/home` (Get started + Connect AI) still exists and is where the AI gets connected.
 
 **Shortcuts and risks**
 - No per-user access control (decision 5). Fine for a one-school demo; not for real use.
@@ -241,5 +247,5 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 ## 6. Last updated
 
-**7 Nov 2026**. Covers every commit up to **`8af19ac`** ("Close 'money with no receipt' flags when the
-receipt turns up"), plus the commit that adds this file (see Phase 7).
+**7 Nov 2026**. Covers every commit up to **`41a5d3a`** ("Add docs/PROJECT_HISTORY.md and the rule to keep
+it updated"), plus the UI clarity commit in Phase 8.

@@ -14,18 +14,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { APP_TITLE } from "@/lib/app-config";
+import { explainFlag } from "@/lib/explain-flag";
 import { cn } from "@/lib/utils";
+
+const TONE: Record<string, { bar: string; chip: string }> = {
+  amber: { bar: "border-l-amber-500", chip: "bg-amber-500/15 text-amber-700 dark:text-amber-300" },
+  red: { bar: "border-l-red-500", chip: "bg-red-500/15 text-red-700 dark:text-red-300" },
+  blue: { bar: "border-l-sky-500", chip: "bg-sky-500/15 text-sky-700 dark:text-sky-300" },
+};
 
 export function meta() {
   return [{ title: `Flags - ${APP_TITLE}` }];
 }
 
-const KIND_LABEL: Record<string, string> = {
-  amount_diff: "Amount differs",
-  no_money: "No money found",
-  no_receipt: "Money with no receipt",
-  duplicate: "Possible duplicate",
-};
 
 type Resolution = "accept_match" | "fix_amount" | "void_duplicate" | "add_receipt" | "real_problem";
 
@@ -160,6 +161,8 @@ function FlagCard({
   const [receiptNo, setReceiptNo] = useState("");
   const receipts = f.proposedMatch?.receipts?.filter(Boolean) ?? (f.receipt ? [f.receipt] : []);
   const subject = f.receipt ? `receipt ${f.receipt.receiptNo}` : `the payment ${f.moneyLine?.moneyRef ?? ""}`;
+  const ex = explainFlag(f);
+  const tone = TONE[ex.tone] ?? TONE.amber!;
 
   function askAgent() {
     sendToAgentChat({
@@ -179,12 +182,13 @@ function FlagCard({
     <li
       onClick={onSelect}
       className={cn(
-        "flex cursor-pointer flex-col gap-4 rounded-lg border p-5 transition-colors",
+        "flex cursor-pointer flex-col gap-4 rounded-lg border border-l-4 p-5 transition-colors",
+        tone.bar,
         selected ? "border-primary ring-2 ring-primary/20" : "hover:border-foreground/20",
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">{KIND_LABEL[f.kind] ?? f.kind}</span>
+        <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", tone.chip)}>{ex.title}</span>
         <button
           type="button"
           onClick={(e) => {
@@ -231,7 +235,20 @@ function FlagCard({
         </div>
       </div>
 
-      <p className="text-sm leading-relaxed">{f.note}</p>
+      <div className="flex flex-col gap-1.5 text-sm leading-relaxed">
+        <p>
+          <span className="font-medium">What happened: </span>
+          {ex.happened}
+        </p>
+        <p>
+          <span className="font-medium">What to do: </span>
+          {ex.todo}
+        </p>
+        <details className="text-xs text-muted-foreground" onClick={(e) => e.stopPropagation()}>
+          <summary className="cursor-pointer select-none">Evidence the check used</summary>
+          <p className="mt-1">{f.note}</p>
+        </details>
+      </div>
 
       <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
         {f.kind === "amount_diff" && f.moneyLine && (
