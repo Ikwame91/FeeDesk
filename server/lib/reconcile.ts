@@ -435,11 +435,18 @@ export async function getSummary() {
   const by = (s: string) => Number(statusRows.find((r) => r.status === s)?.n ?? 0);
   const openFlagRows = await db.select({ kind: flags.kind, n }).from(flags).where(isNull(flags.resolvedAt)).groupBy(flags.kind);
   const owing = await db
-    .select({ id: students.id })
+    .select({
+      id: students.id,
+      balance: sql<number>`(${students.termFeePesewas} - coalesce(sum(${receipts.amountPesewas}), 0))::int`,
+    })
     .from(students)
     .leftJoin(receipts, and(eq(receipts.studentId, students.id), eq(receipts.status, "verified")))
     .groupBy(students.id, students.termFeePesewas)
     .having(sql`${students.termFeePesewas} > coalesce(sum(${receipts.amountPesewas}), 0)`);
+  const [verifiedSum] = await db
+    .select({ total: sql<number>`coalesce(sum(${receipts.amountPesewas}), 0)::int` })
+    .from(receipts)
+    .where(eq(receipts.status, "verified"));
   const ledger = await loadLedger();
   const taken = new Set(ledger.matches.filter((m) => m.state !== "rejected").map((m) => m.moneyLineId));
   const receiptsTotal = by("unchecked") + by("verified") + by("flagged");
@@ -454,6 +461,8 @@ export async function getSummary() {
     studentsOwing: owing.length,
     students: ledger.students.length,
     moneyLinesUnmatched: ledger.lines.filter((l) => !taken.has(l.id)).length,
+    verifiedGhs: pesewasToGhs(Number(verifiedSum?.total ?? 0)),
+    owedGhs: pesewasToGhs(owing.reduce((t, o) => t + Number(o.balance), 0)),
     headline: `${by("verified")} of ${receiptsTotal} receipts verified · ${by("flagged")} flagged · ${owing.length} students owing`,
   };
 }

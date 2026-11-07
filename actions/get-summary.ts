@@ -18,6 +18,8 @@ export default defineAction({
     studentsOwing: z.number(),
     students: z.number(),
     moneyLinesUnmatched: z.number(),
+    verifiedGhs: z.string().describe("Total of verified receipts, GHS with 2 decimals"),
+    owedGhs: z.string().describe("Total still owed by students (term fee minus verified receipts), GHS"),
     headline: z.string(),
   }),
   http: { method: "GET" },

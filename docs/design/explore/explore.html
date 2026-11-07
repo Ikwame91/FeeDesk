@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FeeDesk — three directions</title>
+<link rel="stylesheet" href="FONTS/@fontsource-variable/bodoni-moda/index.css">
+<link rel="stylesheet" href="FONTS/@fontsource-variable/bodoni-moda/wght-italic.css">
+<link rel="stylesheet" href="FONTS/@fontsource-variable/public-sans/index.css">
+<link rel="stylesheet" href="FONTS/@fontsource-variable/bricolage-grotesque/index.css">
+<link rel="stylesheet" href="FONTS/@fontsource/barlow-condensed/400.css">
+<link rel="stylesheet" href="FONTS/@fontsource/barlow-condensed/600.css">
+<link rel="stylesheet" href="FONTS/@fontsource/ibm-plex-mono/400.css">
+<link rel="stylesheet" href="FONTS/@fontsource/ibm-plex-mono/500.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #777; padding: 40px; display: flex; flex-direction: column; gap: 40px; }
+  .frame { width: 1280px; height: 800px; position: relative; overflow: hidden; display: grid; grid-template-columns: 220px 1fr; }
+  .nav { padding: 28px 22px; display: flex; flex-direction: column; gap: 6px; }
+  .nav a { font-size: 14px; text-decoration: none; padding: 7px 0; }
+  .main { position: relative; padding: 44px 64px 40px 56px; display: flex; flex-direction: column; }
+  .tab { font-variant-numeric: tabular-nums; }
+
+  /* ---------- A. Banknote ---------- */
+  .a { --paper:#ECEDE7; --ink:#1B201E; --ink2:#59605B; --rule:#CDD0C6; --oxblood:#8B2A27; --oxwash:#E6DAD3;
+       background: var(--paper); color: var(--ink); font-family: "Public Sans Variable", sans-serif; }
+  .a .nav { border-right: 1px solid var(--rule); }
+  .a .mark { font-family: "Bodoni Moda Variable", serif; font-size: 26px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 26px; }
+  .a .mark i { color: var(--oxblood); font-weight: 500; }
+  .a .nav a { color: var(--ink2); } .a .nav a.on { color: var(--ink); font-weight: 600; }
+  .a .nav .count { float: right; color: var(--oxblood); font-weight: 600; }
+  .a .eyebrow { font-size: 13px; color: var(--ink2); }
+  .a .hero { display: grid; grid-template-columns: 1fr 340px; align-items: center; margin-top: 18px; }
+  .a .big { font-family: "Bodoni Moda Variable", serif; font-weight: 700; font-size: 168px; line-height: 0.82; letter-spacing: -0.035em; }
+  .a .big small { font-size: 64px; font-weight: 400; color: var(--ink2); letter-spacing: -0.02em; }
+  .a .lede { font-family: "Bodoni Moda Variable", serif; font-size: 27px; line-height: 1.25; margin-top: 18px; max-width: 560px; }
+  .a .lede em { color: var(--oxblood); }
+  .a .meta { margin-top: 14px; font-size: 14px; color: var(--ink2); }
+  .a .rosette { width: 340px; height: 340px; }
+  .a .queue { margin-top: 34px; border-top: 1.5px solid var(--ink); }
+  .a .qhead { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 0 6px; }
+  .a .qhead h2 { font-family: "Bodoni Moda Variable", serif; font-size: 24px; font-weight: 600; }
+  .a .qhead a { font-size: 14px; color: var(--oxblood); font-weight: 600; text-decoration: none; }
+  .a .row { display: grid; grid-template-columns: 92px 1fr 170px; gap: 18px; align-items: baseline; padding: 13px 0; border-bottom: 1px solid var(--rule); font-size: 15px; }
+  .a .no { font-family: "Bodoni Moda Variable", serif; font-style: italic; font-size: 19px; color: var(--ink2); }
+  .a .row b { font-weight: 600; }
+  .a .act { text-align: right; color: var(--oxblood); font-weight: 600; font-size: 14px; }
+  .a .btn { position: absolute; top: 44px; right: 64px; background: var(--oxblood); color: #F6EFEA; font-weight: 600; font-size: 14px; padding: 11px 18px; border-radius: 3px; }
+
+  /* ---------- B. Harmattan ---------- */
+  .b { --ink:#2A1C12; --ink2:#6E5442; --sun:#C2531E;
+       background: linear-gradient(180deg, #F3E1CB 0%, #EFD3B4 38%, #E8C29D 70%, #DFB088 100%);
+       color: var(--ink); font-family: "Bricolage Grotesque Variable", sans-serif; }
+  .b::before { content:""; position:absolute; right:150px; top:70px; width:250px; height:250px; border-radius:50%;
+       background: radial-gradient(circle, #FBEFDF 0%, #F7E3CA 55%, rgba(247,227,202,0) 72%); }
+  .b .band { position:absolute; left:0; right:0; height:1px; background: rgba(42,28,18,.07); }
+  .b .nav { position: relative; z-index: 1; }
+  .b .mark { font-size: 24px; font-weight: 750; font-stretch: 125%; letter-spacing: -0.02em; margin-bottom: 26px; }
+  .b .nav a { color: var(--ink2); } .b .nav a.on { color: var(--ink); font-weight: 650; }
+  .b .main { z-index: 1; }
+  .b .eyebrow { font-size: 14px; color: var(--ink2); }
+  .b .big { font-size: 132px; font-weight: 800; font-stretch: 125%; letter-spacing: -0.05em; line-height: .9; margin-top: 34px; }
+  .b .big span { color: var(--ink2); font-weight: 400; }
+  .b .lede { font-size: 26px; font-weight: 450; margin-top: 10px; }
+  .b .meta { font-size: 15px; color: var(--ink2); margin-top: 8px; }
+  .b .need { margin-top: 46px; display: grid; grid-template-columns: 300px 1fr; gap: 40px; }
+  .b .need h2 { font-size: 64px; font-weight: 750; font-stretch: 112%; letter-spacing: -0.04em; line-height: .95; }
+  .b .need h2 small { display:block; font-size: 18px; font-weight: 500; letter-spacing: 0; color: var(--ink2); margin-top: 8px; }
+  .b .list div { display: grid; grid-template-columns: 1fr auto; padding: 12px 0; border-bottom: 1px solid rgba(42,28,18,.16); font-size: 16px; }
+  .b .list em { font-style: normal; color: var(--sun); font-weight: 650; font-size: 15px; }
+  .b .btn { position: absolute; top: 44px; right: 64px; background: var(--ink); color: #F6E6D2; font-weight: 600; font-size: 15px; padding: 12px 20px; border-radius: 999px; }
+
+  /* ---------- C. Banking hall ---------- */
+  .c { --bg:#0E1814; --ink:#ECE6D6; --ink2:#99A49B; --brass:#C9A24C; --hair: rgba(201,162,76,.32);
+       background: var(--bg); color: var(--ink); font-family: "IBM Plex Mono", monospace; }
+  .c .nav { border-right: 1px solid var(--hair); font-family: "Barlow Condensed", sans-serif; }
+  .c .mark { font-size: 30px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--brass); margin-bottom: 26px; }
+  .c .nav a { color: var(--ink2); font-size: 18px; letter-spacing: .02em; } .c .nav a.on { color: var(--ink); }
+  .c .eyebrow { font-family: "Barlow Condensed", sans-serif; font-size: 17px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink2); }
+  .c .hall { display: grid; grid-template-columns: 420px 1fr; gap: 56px; margin-top: 26px; }
+  .c .arch { position: relative; height: 420px; border: 1.5px solid var(--brass); border-radius: 210px 210px 4px 4px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  .c .arch::after { content:""; position:absolute; inset: 12px; border: 1px solid var(--hair); border-radius: 198px 198px 2px 2px; }
+  .c .big { font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 150px; line-height: .85; letter-spacing: -0.01em; }
+  .c .big span { color: var(--ink2); font-weight: 400; font-size: 88px; }
+  .c .cap { font-family: "Barlow Condensed", sans-serif; font-size: 20px; letter-spacing: .05em; text-transform: uppercase; color: var(--brass); margin-top: 14px; }
+  .c .sub { font-size: 13px; color: var(--ink2); margin-top: 8px; }
+  .c h2 { font-family: "Barlow Condensed", sans-serif; font-size: 30px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
+  .c h2 span { color: var(--brass); }
+  .c .row { display: grid; grid-template-columns: 64px 1fr 120px; gap: 14px; padding: 13px 0; border-bottom: 1px solid var(--hair); font-size: 13.5px; line-height: 1.45; }
+  .c .row .n { color: var(--brass); }
+  .c .row .amt { text-align: right; }
+  .c .btn { position: absolute; top: 44px; right: 64px; border: 1.5px solid var(--brass); color: var(--brass); font-family: "Barlow Condensed", sans-serif; letter-spacing: .06em; text-transform: uppercase; font-size: 17px; padding: 9px 18px; }
+</style>
+</head>
+<body>
+
+<!-- A. Banknote -->
+<section class="frame a" data-name="a-banknote">
+  <nav class="nav">
+    <div class="mark">Fee<i>Desk</i></div>
+    <a class="on" href="#">Overview</a>
+    <a href="#">To review <span class="count">12</span></a>
+    <a href="#">Receipts</a>
+    <a href="#">Students</a>
+  </nav>
+  <main class="main">
+    <div class="btn">Check new receipts</div>
+    <div class="eyebrow">Adenta Hills Academy · First term 2026/27 · statements to Fri 30 Oct</div>
+    <div class="hero">
+      <div>
+        <div class="big tab">108<small> / 119</small></div>
+        <p class="lede">receipts are backed by money that <em>actually arrived</em>.</p>
+        <p class="meta tab">GHS 40,710.00 matched · 17 students still owe GHS 8,290.00</p>
+      </div>
+      <svg class="rosette" viewBox="-170 -170 340 340" aria-hidden="true">
+        <g fill="none" stroke="#8B2A27" stroke-width="0.55" opacity="0.55">
+          <!-- guilloché: rotated ellipses -->
+          <g id="ring">
+            <ellipse rx="150" ry="58"/><ellipse rx="150" ry="58" transform="rotate(10)"/><ellipse rx="150" ry="58" transform="rotate(20)"/>
+            <ellipse rx="150" ry="58" transform="rotate(30)"/><ellipse rx="150" ry="58" transform="rotate(40)"/><ellipse rx="150" ry="58" transform="rotate(50)"/>
+            <ellipse rx="150" ry="58" transform="rotate(60)"/><ellipse rx="150" ry="58" transform="rotate(70)"/><ellipse rx="150" ry="58" transform="rotate(80)"/>
+            <ellipse rx="150" ry="58" transform="rotate(90)"/><ellipse rx="150" ry="58" transform="rotate(100)"/><ellipse rx="150" ry="58" transform="rotate(110)"/>
+            <ellipse rx="150" ry="58" transform="rotate(120)"/><ellipse rx="150" ry="58" transform="rotate(130)"/><ellipse rx="150" ry="58" transform="rotate(140)"/>
+            <ellipse rx="150" ry="58" transform="rotate(150)"/><ellipse rx="150" ry="58" transform="rotate(160)"/><ellipse rx="150" ry="58" transform="rotate(170)"/>
+          </g>
+          <use href="#ring" transform="scale(0.62) rotate(5)"/>
+          <circle r="160"/><circle r="164"/><circle r="40"/>
+        </g>
+        <text text-anchor="middle" y="8" font-family="Bodoni Moda Variable" font-size="22" font-style="italic" fill="#8B2A27">verified</text>
+      </svg>
+    </div>
+    <div class="queue">
+      <div class="qhead"><h2>Twelve need you</h2><a href="#">Review all →</a></div>
+      <div class="row"><span class="no">№ 1031</span><span>Linda Asante's receipt says <b>GHS 407.00</b>; George Asante sent <b>GHS 470.00</b> by MoMo, Wed 23 Sept.</span><span class="act">Fix to GHS 470.00</span></div>
+      <div class="row"><span class="no">№ 1019</span><span>GHS 250.00 cash from Edem Kpodo, Thu 17 Sept, never reached the bank.</span><span class="act">Look into it</span></div>
+      <div class="row"><span class="no">№ 1070–72</span><span>Three Friday cash receipts match a <b>GHS 890.00</b> deposit on Mon 12 Oct.</span><span class="act">Confirm deposit</span></div>
+    </div>
+  </main>
+</section>
+
+<!-- B. Harmattan -->
+<section class="frame b" data-name="b-harmattan">
+  <div class="band" style="top:300px"></div><div class="band" style="top:520px"></div><div class="band" style="top:660px"></div>
+  <nav class="nav">
+    <div class="mark">FeeDesk</div>
+    <a class="on" href="#">Overview</a>
+    <a href="#">To review · 12</a>
+    <a href="#">Receipts</a>
+    <a href="#">Students</a>
+  </nav>
+  <main class="main">
+    <div class="btn">Check new receipts</div>
+    <div class="eyebrow">Adenta Hills Academy · First term · to Fri 30 Oct</div>
+    <div class="big tab">108 <span>of 119</span></div>
+    <p class="lede">receipts are backed by money that arrived.</p>
+    <p class="meta tab">GHS 40,710.00 matched · 17 students still owe GHS 8,290.00</p>
+    <div class="need">
+      <h2>12 to look at<small>The rest add up.</small></h2>
+      <div class="list">
+        <div><span>Receipt 1031 says GHS 407.00 — George Asante sent GHS 470.00</span><em>Fix amount</em></div>
+        <div><span>GHS 250.00 cash from Edem Kpodo never reached the bank</span><em>Look into it</em></div>
+        <div><span>Three Friday cash receipts match Monday's GHS 890.00 deposit</span><em>Confirm</em></div>
+        <div><span>GHS 470.00 from Akosua Addo arrived with no receipt</span><em>Write receipt</em></div>
+      </div>
+    </div>
+  </main>
+</section>
+
+<!-- C. Banking hall -->
+<section class="frame c" data-name="c-banking-hall">
+  <nav class="nav">
+    <div class="mark">FeeDesk</div>
+    <a class="on" href="#">Overview</a>
+    <a href="#">To review (12)</a>
+    <a href="#">Receipts</a>
+    <a href="#">Students</a>
+  </nav>
+  <main class="main">
+    <div class="btn">Check new receipts</div>
+    <div class="eyebrow">Adenta Hills Academy — First term 2026/27</div>
+    <div class="hall">
+      <div class="arch">
+        <div class="big tab">108<span>/119</span></div>
+        <div class="cap">receipts backed by money</div>
+        <div class="sub tab">GHS 40,710.00 matched</div>
+      </div>
+      <div>
+        <h2>At the window: <span>12</span></h2>
+        <div class="row"><span class="n">1031</span><span>Receipt says 407.00. George Asante sent 470.00 by MoMo, Wed 23 Sept.</span><span class="amt">+63.00</span></div>
+        <div class="row"><span class="n">1019</span><span>Cash, Edem Kpodo, Thu 17 Sept. Not in any deposit.</span><span class="amt">250.00</span></div>
+        <div class="row"><span class="n">1070</span><span>Three Friday cash receipts. Banked together Mon 12 Oct?</span><span class="amt">890.00</span></div>
+        <div class="row"><span class="n">—</span><span>MoMo from Akosua Addo, Tue 15 Sept. No receipt written.</span><span class="amt">470.00</span></div>
+        <div class="row"><span class="n">—</span><span>17 students still owe.</span><span class="amt">8,290.00</span></div>
+      </div>
+    </div>
+  </main>
+</section>
+
+</body>
+</html>

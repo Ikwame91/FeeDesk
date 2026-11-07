@@ -19,6 +19,7 @@ Built for the Builder.io Agent-Native Hackathon (deadline Mon 9 Nov 2026, 11:59 
 [`docs/HANDOFF.md`](HANDOFF.md).
 
 **Stack**
+- Design: "Banknote" direction, see [`docs/design/DIRECTION.md`](design/DIRECTION.md).
 - [Agent-Native](https://www.agent-native.com/docs/) framework (`@agent-native/core` 0.223.0), started from
   its **Chat template**: React 19 + React Router 8 (UI), Vite 8, Nitro/h3 server, agent chat with actions.
 - Postgres through Drizzle ORM: **PGlite** locally (`./data/pglite`), any Postgres URL when hosted.
@@ -172,7 +173,8 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 | Date | What changed | Why | Key files | Commit |
 |---|---|---|---|---|
-| 7 Nov | Flag cards now say **What happened** and **What to do** in plain words (no confidence %, no `momo:` refs), with the raw evidence folded under "Evidence the check used"; cards are tinted by kind; the template's Home link is gone from the sidebar | Testing showed the cards were confusing; the Home page was a template leftover | `app/lib/explain-flag.ts` (+ test), `app/routes/flags.tsx`, `app/components/layout/Sidebar.tsx` | (this commit) |
+| 7 Nov | Flag cards now say **What happened** and **What to do** in plain words (no confidence %, no `momo:` refs), with the raw evidence folded under "Evidence the check used"; cards are tinted by kind; the template's Home link is gone from the sidebar | Testing showed the cards were confusing; the Home page was a template leftover | `app/lib/explain-flag.ts` (+ test), `app/routes/flags.tsx`, `app/components/layout/Sidebar.tsx` | `4a20fa8` |
+| 7 Nov | **Redesign: the "Banknote" direction.** Followed the App Designer method (brief → three rendered directions → one chosen → screens → shoot and critique, 3 rounds). New theme (bone paper, ink, one oxblood accent, designed dark mode), Bodoni Moda + Public Sans (Inter removed), guilloché seal and banknote underprint, FeeDesk wordmark. Overview and To review rebuilt as ruled pages instead of card stacks; the *settled* stamp when a flag is resolved. `get-summary` now returns `verifiedGhs` and `owedGhs` | Kwame asked for a calm, trustworthy, memorable design (Creativity & Design is 20% of judging); the old UI looked like the template | `docs/design/*`, `app/global.css`, `app/components/feedesk/Seal.tsx`, `app/routes/dashboard.tsx`, `app/routes/flags.tsx`, `app/components/layout/Sidebar.tsx`, `app/lib/explain-flag.ts`, `server/lib/reconcile.ts`, `actions/get-summary.ts`, `package.json` | (this commit) |
 
 ---
 
@@ -196,6 +198,7 @@ agent; merges on GitHub show as Isaac Agyapong.
 | 14 | Agent instructions | FeeDesk section at the top of `AGENTS.md` | The runtime agent only reads the first 6,000 characters (build-an-app skill) | A separate runtime skill file |
 | 15 | Photo attachments | Builder's hand-written upload driver to `/_agent-native/file-upload`; attachments on only when storage is configured | Needed for the photo flow (PR #1). Why a custom driver rather than a framework helper isn't recorded | — |
 | 16 | Git workflow | One branch `scaffold-app`, plain commit messages without co-author lines | Owner's preference | Generated branch names, PR per feature |
+| 17 | Visual direction | "Banknote": bone paper, ink, one oxblood accent, Bodoni Moda + Public Sans, guilloché seal, ruled pages, a *settled* stamp | Calm and trustworthy (security printing = "this money is real"), memorable for judges; chosen from three rendered directions (`docs/design/DIRECTION.md`) | B. Harmattan (warm colour field; read soft), C. Banking hall (dark, condensed, mono; read like a trading terminal) |
 
 ---
 
@@ -211,13 +214,14 @@ agent; merges on GitHub show as Isaac Agyapong.
   `BETTER_AUTH_SECRET` and file storage for photos are also still needed.
 
 **UX found confusing in testing**
-- Flag card colours (amber / red / blue by kind) are provisional. App Designer's rules count several hues as "confetti"; the redesign should settle on one accent plus semantic red.
+- The design critique was self-scored (`docs/design/CRITIQUE.md`), not done by an independent critic; contrast was checked by eye, not measured.
+- App Designer itself (an iPhone design skill, third-party, no licence file) is not in the repo; only its method was applied.
 - The Add receipt form defaults the date to today. Typing old receipts without changing it creates false
   "No money found" + "Money with no receipt" pairs.
 - "Banked separately…" on a cash flag with no proposed deposit only opens the agent chat; there is no
   deposit picker.
-- Template leftovers still visible: the template logo, and the chat-first sidebar. The Home link is gone,
-  but `/home` (Get started + Connect AI) still exists and is where the AI gets connected.
+- Template leftovers: the chat-first sidebar ("New chat", "My chats") and `/home` (Get started + Connect AI,
+  no longer linked). The template logo is replaced by the FeeDesk wordmark.
 
 **Shortcuts and risks**
 - No per-user access control (decision 5). Fine for a one-school demo; not for real use.
@@ -247,5 +251,5 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 ## 6. Last updated
 
-**7 Nov 2026**. Covers every commit up to **`41a5d3a`** ("Add docs/PROJECT_HISTORY.md and the rule to keep
-it updated"), plus the UI clarity commit in Phase 8.
+**7 Nov 2026**. Covers every commit up to **`4a20fa8`** ("Make flag cards explain themselves; drop the
+template Home link"), plus the redesign commit in Phase 8.

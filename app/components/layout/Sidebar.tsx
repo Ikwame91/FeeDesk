@@ -1,3 +1,4 @@
+import { useActionQuery } from "@agent-native/core/client/hooks";
 import { appPath } from "@agent-native/core/client/api-path";
 import { useT } from "@agent-native/core/client/i18n";
 import {
@@ -12,7 +13,6 @@ import {
 } from "@agent-native/toolkit/app/chat/ownership-history";
 import { OrgSwitcher } from "@agent-native/toolkit/app/org";
 import { openCommandMenu } from "@agent-native/toolkit/app/shared";
-import { AgentNativeIcon } from "@agent-native/toolkit/app/shared/AgentNativeIcon";
 import {
   IconEdit,
   IconHome,
@@ -126,7 +126,7 @@ function DashboardNavLink({ collapsed }: { collapsed: boolean }) {
     <Link
       to="/dashboard"
       aria-current={active ? "page" : undefined}
-      aria-label={collapsed ? "Dashboard" : undefined}
+      aria-label={collapsed ? "Overview" : undefined}
       className={cn(
         "flex items-center text-sidebar-accent-foreground transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
         active && "bg-sidebar-accent",
@@ -136,7 +136,7 @@ function DashboardNavLink({ collapsed }: { collapsed: boolean }) {
       )}
     >
       <IconLayoutDashboard className="size-4 shrink-0" strokeWidth={1.8} />
-      <span className={collapsed ? "sr-only" : "truncate"}>Dashboard</span>
+      <span className={collapsed ? "sr-only" : "truncate"}>Overview</span>
     </Link>
   );
 
@@ -144,7 +144,7 @@ function DashboardNavLink({ collapsed }: { collapsed: boolean }) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>{link}</TooltipTrigger>
-        <TooltipContent side="right">Dashboard</TooltipContent>
+        <TooltipContent side="right">Overview</TooltipContent>
       </Tooltip>
     );
   }
@@ -154,12 +154,13 @@ function DashboardNavLink({ collapsed }: { collapsed: boolean }) {
 
 function FlagsNavLink({ collapsed }: { collapsed: boolean }) {
   const location = useLocation();
+  const openFlags = useActionQuery("get-summary", {}).data?.openFlags ?? 0;
   const active = location.pathname.startsWith("/flags");
   const link = (
     <Link
       to="/flags"
       aria-current={active ? "page" : undefined}
-      aria-label={collapsed ? "Flags" : undefined}
+      aria-label={collapsed ? "To review" : undefined}
       className={cn(
         "flex items-center text-sidebar-accent-foreground transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
         active && "bg-sidebar-accent",
@@ -169,7 +170,10 @@ function FlagsNavLink({ collapsed }: { collapsed: boolean }) {
       )}
     >
       <IconFlag className="size-4 shrink-0" strokeWidth={1.8} />
-      <span className={collapsed ? "sr-only" : "truncate"}>Flags</span>
+      <span className={collapsed ? "sr-only" : "flex flex-1 items-center justify-between truncate"}>
+        To review
+        {!collapsed && openFlags > 0 && <span className="tabular text-oxblood">{openFlags}</span>}
+      </span>
     </Link>
   );
 
@@ -177,7 +181,7 @@ function FlagsNavLink({ collapsed }: { collapsed: boolean }) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>{link}</TooltipTrigger>
-        <TooltipContent side="right">Flags</TooltipContent>
+        <TooltipContent side="right">To review</TooltipContent>
       </Tooltip>
     );
   }
@@ -406,10 +410,9 @@ export function Sidebar({
                 aria-label={APP_TITLE}
                 className="flex size-8 items-center justify-center rounded outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
               >
-                <AgentNativeIcon
-                  aria-hidden="true"
-                  className="h-3.5 w-6 text-sidebar-accent-foreground"
-                />
+                <span aria-hidden="true" className="font-display text-lg font-semibold text-sidebar-accent-foreground">
+                  F<i className="font-medium text-oxblood">d</i>
+                </span>
               </Link>
             </TooltipTrigger>
             <TooltipContent side="right">{APP_TITLE}</TooltipContent>
@@ -420,12 +423,8 @@ export function Sidebar({
               to="/"
               className="flex min-w-0 flex-1 items-center gap-3 rounded outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
             >
-              <AgentNativeIcon
-                aria-hidden="true"
-                className="h-3.5 w-6 shrink-0 text-sidebar-accent-foreground"
-              />
-              <span className="truncate text-sm font-semibold text-sidebar-accent-foreground">
-                {APP_TITLE}
+              <span className="truncate font-display text-[22px] font-semibold tracking-tight text-sidebar-accent-foreground">
+                Fee<i className="font-medium text-oxblood">Desk</i>
               </span>
             </Link>
           </>

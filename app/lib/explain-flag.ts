@@ -37,7 +37,7 @@ export const ghsText = (amount: string) =>
 export const dayText = (d: string) =>
   new Date(`${d}T00:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 
-const titleCase = (s: string) => s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+export const titleCase = (s: string) => s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
 export function explainFlag(f: ExplainFlagInput): FlagExplanation {
   const r = f.receipt;
@@ -101,4 +101,47 @@ export function explainFlag(f: ExplainFlagInput): FlagExplanation {
   }
 
   return { tone: "amber", title: "Needs a look", happened: f.note, todo: "Ask the agent about this one, or mark it as a problem." };
+}
+
+/** One line and an action word, for short lists such as the Overview's "need you" queue. */
+export function flagLine(f: ExplainFlagInput): { ref: string; line: string; action: string; missingMoney: boolean } {
+  const r = f.receipt;
+  const m = f.moneyLine;
+  const payer = m?.payerName ? titleCase(m.payerName) : "the parent";
+  if (f.kind === "amount_diff" && r && m) {
+    return {
+      ref: r.receiptNo,
+      line: `${r.studentName}'s receipt says ${ghsText(r.amountGhs)}; ${payer} sent ${ghsText(m.amountGhs)}, ${dayText(m.date)}.`,
+      action: `Fix to ${ghsText(m.amountGhs)}`,
+      missingMoney: false,
+    };
+  }
+  if (f.kind === "duplicate" && r) {
+    return { ref: r.receiptNo, line: `${r.studentName}: a second receipt for one ${ghsText(r.amountGhs)} payment.`, action: "Void duplicate", missingMoney: false };
+  }
+  if (f.kind === "no_money" && f.proposedMatch && m) {
+    const rs = f.proposedMatch.receipts.filter((x): x is ExplainReceipt => !!x);
+    const nos = rs.map((x) => x.receiptNo);
+    return {
+      ref: nos.length > 1 ? `${nos[0]}–${nos[nos.length - 1]!.slice(-2)}` : (nos[0] ?? ""),
+      line: `${rs.length} cash receipts from ${rs[0] ? dayText(rs[0].date) : "one day"} match a ${ghsText(m.amountGhs)} deposit on ${dayText(m.date)}.`,
+      action: "Confirm deposit",
+      missingMoney: false,
+    };
+  }
+  if (f.kind === "no_money" && r) {
+    return {
+      ref: r.receiptNo,
+      line:
+        r.method === "cash"
+          ? `${ghsText(r.amountGhs)} cash from ${r.studentName}, ${dayText(r.date)}, never reached the bank.`
+          : `${ghsText(r.amountGhs)} MoMo for ${r.studentName}, ${dayText(r.date)}: no payment arrived.`,
+      action: "Look into it",
+      missingMoney: true,
+    };
+  }
+  if (f.kind === "no_receipt" && m) {
+    return { ref: "—", line: `${ghsText(m.amountGhs)} from ${payer}, ${dayText(m.date)}, arrived with no receipt.`, action: "Write receipt", missingMoney: false };
+  }
+  return { ref: r?.receiptNo ?? "—", line: f.note, action: "Review", missingMoney: false };
 }

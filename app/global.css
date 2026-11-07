@@ -1,4 +1,6 @@
-@import "@fontsource-variable/inter";
+@import "@fontsource-variable/public-sans";
+@import "@fontsource-variable/bodoni-moda";
+@import "@fontsource-variable/bodoni-moda/wght-italic.css";
 
 @import "tailwindcss";
 @import "@agent-native/toolkit/styles.css";
@@ -6,34 +8,38 @@
 @source "./**/*.{ts,tsx}";
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 0 0% 10%;
-  --card: 0 0% 100%;
-  --card-foreground: 0 0% 10%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 10%;
-  --primary: 0 0% 15%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 0 0% 95%;
-  --secondary-foreground: 0 0% 15%;
-  --muted: 0 0% 95%;
-  --muted-foreground: 0 0% 43%;
-  --accent: 0 0% 95%;
-  --accent-foreground: 0 0% 15%;
-  --destructive: 0 91% 71%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 0 0% 90%;
-  --input: 0 0% 90%;
-  --ring: 0 0% 40%;
-  --radius: 0.5rem;
-  --sidebar-background: 0 0% 97%;
-  --sidebar-foreground: 0 0% 43%;
-  --sidebar-primary: 0 0% 15%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 0 0% 95%;
-  --sidebar-accent-foreground: 0 0% 15%;
-  --sidebar-border: 0 0% 90%;
-  --sidebar-ring: 0 0% 40%;
+  /* FeeDesk "Banknote" direction (docs/design/DIRECTION.md).
+     Bone paper, near-black ink, one intaglio oxblood that means "act here" / "money missing". */
+  --background: 70 14% 92%;
+  --foreground: 156 9% 11%;
+  --card: 75 17% 95%;
+  --card-foreground: 156 9% 11%;
+  --popover: 75 17% 95%;
+  --popover-foreground: 156 9% 11%;
+  --primary: 2 56% 35%;
+  --primary-foreground: 30 40% 95%;
+  --secondary: 75 12% 87%;
+  --secondary-foreground: 156 9% 11%;
+  --muted: 75 12% 88%;
+  --muted-foreground: 137 4% 36%;
+  --accent: 75 12% 87%;
+  --accent-foreground: 156 9% 11%;
+  --destructive: 2 56% 35%;
+  --destructive-foreground: 30 40% 95%;
+  --border: 78 10% 80%;
+  --input: 78 10% 76%;
+  --ring: 2 56% 35%;
+  --radius: 0.25rem;
+  --sidebar-background: 75 12% 89%;
+  --sidebar-foreground: 137 4% 36%;
+  --sidebar-primary: 156 9% 11%;
+  --sidebar-primary-foreground: 70 14% 92%;
+  --sidebar-accent: 75 11% 84%;
+  --sidebar-accent-foreground: 156 9% 11%;
+  --sidebar-border: 78 10% 80%;
+  --sidebar-ring: 2 56% 35%;
+  --oxblood: 2 56% 35%;
+  --rule: 78 10% 80%;
   --chat-sidebar-width: 17.5rem;
   --chat-sidebar-content-inset: 0.5rem;
   --chat-sidebar-row-padding: 0.75rem;
@@ -229,41 +235,43 @@
 }
 
 .dark {
-  --background: 0 0% 13%;
-  --foreground: 0 0% 90%;
-  --card: 0 0% 16.47%;
-  --card-foreground: 0 0% 90%;
-  --popover: 0 0% 15%;
-  --popover-foreground: 0 0% 90%;
-  --primary: 0 0% 75%;
-  --primary-foreground: 0 0% 10%;
-  --secondary: 0 0% 18%;
-  --secondary-foreground: 0 0% 90%;
-  --muted: 0 0% 16%;
-  --muted-foreground: 0 0% 60%;
-  --accent: 0 0% 18%;
-  --accent-foreground: 0 0% 90%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 0 0% 24%;
-  --input: 0 0% 24%;
-  --ring: 0 0% 60%;
-  --radius: 0.5rem;
-  --sidebar-background: 0 0% 10%;
-  --sidebar-foreground: 0 0% 60%;
-  --sidebar-primary: 0 0% 75%;
-  --sidebar-primary-foreground: 0 0% 10%;
-  --sidebar-accent: 0 0% 16%;
-  --sidebar-accent-foreground: 0 0% 90%;
-  --sidebar-border: 0 0% 20%;
-  --sidebar-ring: 0 0% 60%;
+  /* The same note under a desk lamp: deep green-black paper, warm ink, oxblood lifted for contrast. */
+  --background: 150 10% 8%;
+  --foreground: 45 25% 88%;
+  --card: 150 9% 10%;
+  --card-foreground: 45 25% 88%;
+  --popover: 150 9% 11%;
+  --popover-foreground: 45 25% 88%;
+  --primary: 7 52% 62%;
+  --primary-foreground: 150 10% 8%;
+  --secondary: 150 7% 15%;
+  --secondary-foreground: 45 25% 88%;
+  --muted: 150 7% 14%;
+  --muted-foreground: 135 5% 62%;
+  --accent: 150 7% 15%;
+  --accent-foreground: 45 25% 88%;
+  --destructive: 7 52% 62%;
+  --destructive-foreground: 150 10% 8%;
+  --border: 147 8% 19%;
+  --input: 147 8% 23%;
+  --ring: 7 52% 62%;
+  --radius: 0.25rem;
+  --sidebar-background: 150 10% 6%;
+  --sidebar-foreground: 135 5% 62%;
+  --sidebar-primary: 45 25% 88%;
+  --sidebar-primary-foreground: 150 10% 8%;
+  --sidebar-accent: 150 7% 13%;
+  --sidebar-accent-foreground: 45 25% 88%;
+  --sidebar-border: 147 8% 16%;
+  --sidebar-ring: 7 52% 62%;
+  --oxblood: 7 52% 62%;
+  --rule: 147 8% 19%;
 }
 
 @layer base {
   body {
     @apply bg-background text-foreground;
-    font-family: "Inter Variable", "Inter", sans-serif;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-family: "Public Sans Variable", "Public Sans", system-ui, sans-serif;
   }
 }
 
@@ -280,4 +288,43 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.34);
+}
+
+/* FeeDesk display face: Bodoni Moda, the engraved numerals of a banknote. */
+@theme {
+  --font-display: "Bodoni Moda Variable", "Bodoni Moda", Didot, serif;
+  --color-oxblood: hsl(var(--oxblood));
+  --color-rule: hsl(var(--rule));
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Signature: a receipt is "stamped" with the guilloché seal when it is settled. */
+@keyframes feedesk-stamp {
+  0% { opacity: 0; transform: scale(1.6) rotate(-24deg); }
+  55% { opacity: 1; transform: scale(0.94) rotate(4deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.feedesk-stamp {
+  animation: feedesk-stamp 420ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .feedesk-stamp { animation: none; }
+}
+
+/* Banknote underprint: the soft split-fountain tint behind the hero, as on real notes. */
+.feedesk-underprint {
+  /* Each ellipse fades out before the box edge, so the tint never shows a hard line. */
+  background:
+    radial-gradient(22% 46% at 76% 50%, hsl(14 62% 70% / 0.26), transparent),
+    radial-gradient(22% 46% at 24% 48%, hsl(160 28% 62% / 0.2), transparent),
+    radial-gradient(16% 28% at 50% 70%, hsl(42 55% 70% / 0.18), transparent);
+}
+.dark .feedesk-underprint {
+  background:
+    radial-gradient(22% 46% at 76% 50%, hsl(10 50% 40% / 0.2), transparent),
+    radial-gradient(22% 46% at 24% 48%, hsl(160 30% 30% / 0.22), transparent),
+    radial-gradient(16% 28% at 50% 70%, hsl(42 40% 35% / 0.14), transparent);
 }

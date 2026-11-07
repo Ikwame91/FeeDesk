@@ -5,116 +5,133 @@ import {
   useActionQuery,
 } from "@agent-native/core/client/hooks";
 import { useSetPageTitle } from "@agent-native/toolkit/app-shell";
-import { IconCircleCheck, IconMessageCircle } from "@tabler/icons-react";
+import { IconMessageCircle } from "@tabler/icons-react";
 import { useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router";
 import { toast } from "sonner";
 
+import { numberWord, Seal } from "@/components/feedesk/Seal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { APP_TITLE } from "@/lib/app-config";
-import { explainFlag } from "@/lib/explain-flag";
+import { dayText, explainFlag, flagLine, ghsText, titleCase } from "@/lib/explain-flag";
 import { cn } from "@/lib/utils";
 
-const TONE: Record<string, { bar: string; chip: string }> = {
-  amber: { bar: "border-l-amber-500", chip: "bg-amber-500/15 text-amber-700 dark:text-amber-300" },
-  red: { bar: "border-l-red-500", chip: "bg-red-500/15 text-red-700 dark:text-red-300" },
-  blue: { bar: "border-l-sky-500", chip: "bg-sky-500/15 text-sky-700 dark:text-sky-300" },
-};
-
 export function meta() {
-  return [{ title: `Flags - ${APP_TITLE}` }];
+  return [{ title: `To review - ${APP_TITLE}` }];
 }
-
 
 type Resolution = "accept_match" | "fix_amount" | "void_duplicate" | "add_receipt" | "real_problem";
 
-const ghs = (amount: string) => `GHS ${Number(amount).toLocaleString("en-GH", { minimumFractionDigits: 2 })}`;
-const niceDate = (d: string) =>
-  new Date(`${d}T00:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+/** How long the seal stays on a settled entry before it leaves the list. */
+const STAMP_MS = 650;
 
 export default function FlagsRoute() {
-  useSetPageTitle("Flags");
+  useSetPageTitle("To review");
   const flagsQuery = useActionQuery("list-flags", { includeResolved: "false" });
   const summary = useActionQuery("get-summary", {});
   const [params, setParams] = useSearchParams();
   const selected = params.get("flag");
-  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [stamped, setStamped] = useState<Set<string>>(new Set()); // showing the seal
+  const [hidden, setHidden] = useState<Set<string>>(new Set()); // gone from the list
+  // While a seal is playing, keep showing the list as it was: the save is often faster than
+  // the stamp, and the refreshed list would otherwise drop the entry mid-animation.
+  const [frozen, setFrozen] = useState<Flag[] | null>(null);
 
   const resolve = useActionMutation("resolve-flag");
+  const without = (set: Set<string>, id: string) => {
+    const next = new Set(set);
+    next.delete(id);
+    return next;
+  };
+
   function act(flagId: string, resolution: Resolution, extra: { receiptNo?: string; note?: string } = {}) {
-    setHidden((h) => new Set(h).add(flagId)); // acknowledge instantly; the card comes back if it fails
+    // Acknowledge at once: settled entries are stamped, "problem" entries just leave.
+    if (resolution === "real_problem") setHidden((h) => new Set(h).add(flagId));
+    else {
+      setFrozen((f) => f ?? (flagsQuery.data?.flags ?? []).filter((x) => !hidden.has(x.id)));
+      setStamped((s) => new Set(s).add(flagId));
+      window.setTimeout(() => {
+        setHidden((h) => new Set(h).add(flagId));
+        setStamped((s) => {
+          const next = without(s, flagId);
+          if (next.size === 0) setFrozen(null);
+          return next;
+        });
+      }, STAMP_MS);
+    }
     resolve.mutate(
       { flagId, resolution, ...extra },
       {
         onSuccess: (r) => toast.success(r.message),
         onError: (error) => {
-          setHidden((h) => {
-            const next = new Set(h);
-            next.delete(flagId);
-            return next;
-          });
+          window.setTimeout(() => {
+            setStamped((s) => without(s, flagId));
+            setHidden((h) => without(h, flagId));
+          }, 0);
           toast.error(actionErrorMessage(error) ?? "Couldn't apply that. Try again or ask the agent.");
         },
       },
     );
   }
 
-  const flags = (flagsQuery.data?.flags ?? []).filter((f) => !hidden.has(f.id));
+  const flags = (frozen ?? flagsQuery.data?.flags ?? []).filter((f) => !hidden.has(f.id));
   const s = summary.data;
+  const n = flags.length;
 
   return (
     <div className="h-full overflow-auto">
-      <div className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8 sm:px-8">
-        <header className="flex flex-wrap items-end justify-between gap-4">
-          {s ? (
-            <p className="text-lg">
-              <span className="text-3xl font-semibold tabular-nums">{s.verified}</span>
-              <span className="text-muted-foreground"> of {s.receipts} receipts verified · </span>
-              <span className="font-medium tabular-nums">{s.flagged}</span>
-              <span className="text-muted-foreground"> flagged · </span>
-              <span className="font-medium tabular-nums">{s.studentsOwing}</span>
-              <span className="text-muted-foreground"> students owing</span>
-            </p>
+      <div className="mx-auto flex max-w-[860px] flex-col px-5 pb-16 pt-9 sm:px-12">
+        <header>
+          <p className="text-sm text-muted-foreground">Adenta Hills Academy · First term 2026/27</p>
+          {flagsQuery.isLoading ? (
+            <Skeleton className="mt-4 h-14 w-96" />
           ) : (
-            <Skeleton className="h-9 w-80" />
+            <h1 className="mt-3 font-display text-[clamp(40px,5vw,56px)] font-semibold leading-none tracking-[-0.02em]">
+              {n === 0 ? "Nothing to review" : `${numberWord(n)} to review`}
+            </h1>
           )}
-          {flags.length > 0 && <span className="text-sm text-muted-foreground">{flags.length} to review</span>}
+          {s && (
+            <p className="tabular mt-3 text-sm text-muted-foreground">
+              {s.verified} of {s.receipts} receipts backed by money · {s.flagged} flagged · {s.studentsOwing} students owe{" "}
+              {ghsText(s.owedGhs)}
+            </p>
+          )}
         </header>
 
         {flagsQuery.isLoading ? (
-          <div className="flex flex-col gap-4">
-            <Skeleton className="h-44 w-full" />
-            <Skeleton className="h-44 w-full" />
+          <div className="mt-10 flex flex-col gap-6">
+            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-40 w-full" />
           </div>
-        ) : flags.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-lg border p-10 text-center">
-            <IconCircleCheck className="size-8 text-primary" strokeWidth={1.5} />
-            <p className="font-medium">Nothing to review.</p>
-            <p className="text-sm text-muted-foreground">
+        ) : n === 0 ? (
+          <section className="mt-10 grid items-center gap-8 border-t-[1.5px] border-foreground pt-8 sm:grid-cols-[1fr_200px]">
+            <p className="max-w-md font-display text-2xl leading-snug">
               {s && s.unchecked > 0 ? (
                 <>
-                  {s.unchecked} receipts haven't been checked yet. Run <Link to="/dashboard" className="underline">Check everything</Link> on
-                  the Dashboard.
+                  {s.unchecked} receipts haven't been checked yet. Check them from the{" "}
+                  <Link to="/dashboard" className="text-oxblood underline underline-offset-4">Overview</Link>.
                 </>
               ) : (
-                "Every receipt has been checked."
+                <>Every receipt is backed by money or has a decision on it.</>
               )}
             </p>
-          </div>
+            {s && s.unchecked === 0 && <Seal label="all square" className="w-[200px]" />}
+          </section>
         ) : (
-          <ul className="flex flex-col gap-4">
+          <ol className="mt-8 border-t-[1.5px] border-foreground">
             {flags.map((f) => (
-              <FlagCard
+              <FlagEntry
                 key={f.id}
                 flag={f}
                 selected={selected === f.id}
+                stamped={stamped.has(f.id)}
                 onSelect={() => setParams(selected === f.id ? {} : { flag: f.id }, { replace: true })}
                 onResolve={(resolution, extra) => act(f.id, resolution, extra)}
               />
             ))}
-          </ul>
+          </ol>
         )}
       </div>
     </div>
@@ -147,26 +164,28 @@ interface Flag {
   likelyStudent: { id: string; name: string; className: string } | null;
 }
 
-function FlagCard({
+function FlagEntry({
   flag: f,
   selected,
+  stamped,
   onSelect,
   onResolve,
 }: {
   flag: Flag;
   selected: boolean;
+  stamped: boolean;
   onSelect: () => void;
   onResolve: (r: Resolution, extra?: { receiptNo?: string; note?: string }) => void;
 }) {
   const [receiptNo, setReceiptNo] = useState("");
-  const receipts = f.proposedMatch?.receipts?.filter(Boolean) ?? (f.receipt ? [f.receipt] : []);
-  const subject = f.receipt ? `receipt ${f.receipt.receiptNo}` : `the payment ${f.moneyLine?.moneyRef ?? ""}`;
   const ex = explainFlag(f);
-  const tone = TONE[ex.tone] ?? TONE.amber!;
+  const line = flagLine(f);
+  const receipts = (f.proposedMatch?.receipts?.filter(Boolean) as FlagReceipt[] | undefined) ?? (f.receipt ? [f.receipt] : []);
+  const subject = f.receipt ? `receipt ${f.receipt.receiptNo}` : `the ${ghsText(f.moneyLine?.amountGhs ?? "0")} payment`;
 
-  function askAgent() {
+  function askAgent(prefill?: string) {
     sendToAgentChat({
-      message: `About the flag on ${subject}: `,
+      message: prefill ?? `About ${subject}: `,
       context: JSON.stringify({ flagId: f.id, kind: f.kind }),
       submit: false,
       openSidebar: true,
@@ -181,115 +200,122 @@ function FlagCard({
   return (
     <li
       onClick={onSelect}
+      aria-current={selected ? "true" : undefined}
       className={cn(
-        "flex cursor-pointer flex-col gap-4 rounded-lg border border-l-4 p-5 transition-colors",
-        tone.bar,
-        selected ? "border-primary ring-2 ring-primary/20" : "hover:border-foreground/20",
+        "relative grid cursor-pointer gap-x-6 gap-y-3 border-b border-rule py-6 transition-colors sm:grid-cols-[110px_1fr]",
+        selected && "bg-card shadow-[inset_3px_0_0_hsl(var(--oxblood))] sm:-mx-4 sm:px-4",
+        stamped && "pointer-events-none",
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", tone.chip)}>{ex.title}</span>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            askAgent();
-          }}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-        >
-          <IconMessageCircle className="size-3.5" /> Ask the agent
-        </button>
+      {/* Left column: the engraved receipt number */}
+      <div className="flex items-baseline justify-between sm:block">
+        <span className="tabular font-display text-[26px] italic leading-none text-muted-foreground">
+          {line.ref === "—" ? "—" : `№ ${line.ref}`}
+        </span>
+        <span className={cn("text-xs font-semibold sm:mt-2 sm:block", ex.tone === "red" ? "text-oxblood" : "text-muted-foreground")}>
+          {ex.tone === "red" ? "Money missing" : f.kind === "no_receipt" ? "No receipt" : "Mismatch"}
+        </span>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1">
-          <span className="text-xs text-muted-foreground">Receipt{receipts.length > 1 ? "s" : ""}</span>
-          {receipts.length ? (
-            receipts.map((r) => (
-              <div key={r!.receiptNo} className="text-sm">
-                <span className="font-medium tabular-nums">#{r!.receiptNo}</span> · {r!.studentName}{" "}
-                <span className="text-muted-foreground">({r!.className})</span>
-                <div className="tabular-nums text-muted-foreground">
-                  {ghs(r!.amountGhs)} {r!.method === "momo" ? "MoMo" : "cash"} · {niceDate(r!.date)}
-                </div>
-              </div>
-            ))
-          ) : (
-            <span className="text-sm text-muted-foreground">None written</span>
-          )}
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className="text-xs text-muted-foreground">Money</span>
-          {f.moneyLine ? (
-            <div className="text-sm">
-              <span className="font-medium tabular-nums">{ghs(f.moneyLine.amountGhs)}</span>{" "}
-              {f.moneyLine.source === "momo" ? "MoMo" : "bank deposit"} · {niceDate(f.moneyLine.date)}
-              <div className="text-muted-foreground">
-                {f.moneyLine.source === "momo" ? `${f.moneyLine.payerName ?? ""} ${f.moneyLine.payerPhone ?? ""}` : f.moneyLine.moneyRef.slice(5)}
-                {f.moneyLine.reference && f.moneyLine.source === "momo" ? ` · “${f.moneyLine.reference}”` : ""}
-              </div>
-            </div>
-          ) : (
-            <span className="text-sm text-muted-foreground">None found</span>
-          )}
-        </div>
-      </div>
+      <div className="flex min-w-0 flex-col gap-4">
+        <h2 className="font-display text-[22px] font-semibold leading-tight">{ex.title}</h2>
 
-      <div className="flex flex-col gap-1.5 text-sm leading-relaxed">
-        <p>
-          <span className="font-medium">What happened: </span>
-          {ex.happened}
+        {/* The two sides, side by side: what was written, what arrived */}
+        <div className="grid gap-4 text-sm sm:grid-cols-2">
+          <div>
+            <p className="text-xs text-muted-foreground">Written in the receipt book</p>
+            {receipts.length ? (
+              receipts.map((r) => (
+                <p key={r.receiptNo} className="mt-1">
+                  <span className="tabular font-semibold">{ghsText(r.amountGhs)}</span> {r.method === "momo" ? "MoMo" : "cash"} ·{" "}
+                  {r.studentName} <span className="text-muted-foreground">({r.className})</span>
+                  <span className="tabular block text-muted-foreground">
+                    № {r.receiptNo} · {dayText(r.date)}
+                  </span>
+                </p>
+              ))
+            ) : (
+              <p className="mt-1 text-muted-foreground">Nothing written</p>
+            )}
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">What actually arrived</p>
+            {f.moneyLine ? (
+              <p className="mt-1">
+                <span className="tabular font-semibold">{ghsText(f.moneyLine.amountGhs)}</span>{" "}
+                {f.moneyLine.source === "momo" ? "by MoMo" : "bank deposit"} · {dayText(f.moneyLine.date)}
+                <span className="block text-muted-foreground">
+                  {f.moneyLine.source === "momo"
+                    ? [f.moneyLine.payerName && titleCase(f.moneyLine.payerName), f.moneyLine.payerPhone].filter(Boolean).join(" · ")
+                    : "Cash deposit at the bank"}
+                  {f.moneyLine.reference && f.moneyLine.source === "momo" ? ` · “${f.moneyLine.reference}”` : ""}
+                </span>
+              </p>
+            ) : (
+              <p className="mt-1 font-semibold text-oxblood">Nothing found</p>
+            )}
+          </div>
+        </div>
+
+        <p className="text-[15px] leading-relaxed">
+          {ex.happened} <span className="text-muted-foreground">{ex.todo}</span>
         </p>
-        <p>
-          <span className="font-medium">What to do: </span>
-          {ex.todo}
-        </p>
+
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3" onClick={(e) => e.stopPropagation()}>
+          {f.kind === "amount_diff" && f.moneyLine && (
+            <Button size="sm" onClick={() => onResolve("fix_amount")}>
+              Fix to {ghsText(f.moneyLine.amountGhs)}
+            </Button>
+          )}
+          {f.kind === "no_money" && f.proposedMatch && (
+            <Button size="sm" onClick={() => onResolve("accept_match", { note: "Confirmed banked from the review page" })}>
+              Yes, banked together
+            </Button>
+          )}
+          {f.kind === "no_money" && !f.proposedMatch && (
+            <Button size="sm" variant="outline" className="border-foreground" onClick={() => askAgent(`Receipt ${f.receipt?.receiptNo} was banked separately, in the deposit of `)}>
+              It was banked separately…
+            </Button>
+          )}
+          {f.kind === "duplicate" && (
+            <Button size="sm" onClick={() => onResolve("void_duplicate")}>
+              Void the extra receipt
+            </Button>
+          )}
+          {f.kind === "no_receipt" && (
+            <form onSubmit={addReceipt} className="flex items-center gap-2">
+              <Input
+                value={receiptNo}
+                onChange={(e) => setReceiptNo(e.target.value)}
+                placeholder="Receipt №"
+                inputMode="numeric"
+                className="tabular h-8 w-28 bg-card"
+                aria-label="Number of the receipt to write"
+              />
+              <Button size="sm" type="submit" disabled={!receiptNo.trim()}>
+                Write receipt{f.likelyStudent ? ` for ${f.likelyStudent.name.split(" ")[0]}` : ""}
+              </Button>
+            </form>
+          )}
+          <button type="button" onClick={() => onResolve("real_problem")} className="text-sm font-semibold underline-offset-4 hover:underline">
+            Mark as a real problem
+          </button>
+          <button type="button" onClick={() => askAgent()} className="ml-auto flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <IconMessageCircle className="size-4" strokeWidth={1.6} /> Ask the agent
+          </button>
+        </div>
+
         <details className="text-xs text-muted-foreground" onClick={(e) => e.stopPropagation()}>
           <summary className="cursor-pointer select-none">Evidence the check used</summary>
           <p className="mt-1">{f.note}</p>
         </details>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-        {f.kind === "amount_diff" && f.moneyLine && (
-          <Button size="sm" onClick={() => onResolve("fix_amount")}>
-            Fix amount to {ghs(f.moneyLine.amountGhs)}
-          </Button>
-        )}
-        {f.kind === "no_money" && f.proposedMatch && (
-          <Button size="sm" onClick={() => onResolve("accept_match", { note: "Confirmed banked from the Flags screen" })}>
-            Banked — confirm deposit
-          </Button>
-        )}
-        {f.kind === "no_money" && !f.proposedMatch && (
-          <Button size="sm" variant="outline" onClick={askAgent}>
-            Banked separately…
-          </Button>
-        )}
-        {f.kind === "duplicate" && (
-          <Button size="sm" onClick={() => onResolve("void_duplicate")}>
-            Void duplicate
-          </Button>
-        )}
-        {f.kind === "no_receipt" && (
-          <form onSubmit={addReceipt} className="flex items-center gap-2">
-            <Input
-              value={receiptNo}
-              onChange={(e) => setReceiptNo(e.target.value)}
-              placeholder="Receipt #"
-              inputMode="numeric"
-              className="h-8 w-28"
-              aria-label="Receipt number to write"
-            />
-            <Button size="sm" type="submit" disabled={!receiptNo.trim()}>
-              Add receipt{f.likelyStudent ? ` for ${f.likelyStudent.name.split(" ")[0]}` : ""}
-            </Button>
-          </form>
-        )}
-        <Button size="sm" variant="ghost" onClick={() => onResolve("real_problem")}>
-          Mark as problem
-        </Button>
-      </div>
+      {stamped && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-end bg-background/60 pr-6">
+          <Seal label="settled" stamp className="w-36" strokeWidth={0.9} />
+        </div>
+      )}
     </li>
   );
 }
