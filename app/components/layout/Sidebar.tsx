@@ -1,4 +1,5 @@
 import { useActionQuery } from "@agent-native/core/client/hooks";
+import { useTheme } from "next-themes";
 import { appPath } from "@agent-native/core/client/api-path";
 import { useT } from "@agent-native/core/client/i18n";
 import {
@@ -19,6 +20,8 @@ import {
   IconBuildingCommunity,
   IconCamera,
   IconFlag,
+  IconMoon,
+  IconSun,
   IconLayoutDashboard,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
@@ -255,6 +258,37 @@ function CaptureNavLink({ collapsed }: { collapsed: boolean }) {
   }
 
   return <div className="px-2">{link}</div>;
+}
+
+/** Light is the default; this switch lets each person choose dark. The choice is remembered on this device. */
+function ThemeSwitch({ collapsed }: { collapsed: boolean }) {
+  const { resolvedTheme, setTheme } = useTheme();
+  const dark = resolvedTheme === "dark";
+  const label = dark ? "Light mode" : "Dark mode";
+  const Icon = dark ? IconSun : IconMoon;
+  const button = (
+    <button
+      type="button"
+      onClick={() => setTheme(dark ? "light" : "dark")}
+      aria-label={collapsed ? label : undefined}
+      className={cn(
+        "flex items-center text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+        collapsed ? "size-8 justify-center rounded-md" : "h-8 w-full gap-3 rounded-lg px-3 text-sm",
+      )}
+    >
+      <Icon className="size-4 shrink-0" strokeWidth={1.8} />
+      <span className={collapsed ? "sr-only" : "truncate"}>{label}</span>
+    </button>
+  );
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipContent side="right">{label}</TooltipContent>
+      </Tooltip>
+    );
+  }
+  return <div className="px-2">{button}</div>;
 }
 
 function ChatThreadsSection({ collapsed }: { collapsed: boolean }) {
@@ -510,6 +544,7 @@ export function Sidebar({
         <CaptureNavLink collapsed={collapsed} />
         <FlagsNavLink collapsed={collapsed} />
         <SchoolNavLink collapsed={collapsed} />
+        <ThemeSwitch collapsed={collapsed} />
         <ChatThreadsSection collapsed={collapsed} />
       </nav>
 

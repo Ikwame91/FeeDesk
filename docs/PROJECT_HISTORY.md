@@ -41,8 +41,8 @@ Other commands: `pnpm demo:check` (run the matching without AI), `pnpm demo:gene
 
 ## 2. Current architecture
 
-**Not deployed yet.** Runs locally only. `netlify.toml` (from the template) is the intended route but hasn't
-been configured or used; see Known issues.
+**Not deployed yet.** Target: Netlify (git-connected to `scaffold-app`) with Neon Postgres; the build and
+production migrations are verified locally. Steps in [`docs/DEPLOY.md`](DEPLOY.md).
 
 ```mermaid
 flowchart LR
@@ -192,7 +192,14 @@ agent; merges on GitHub show as Isaac Agyapong.
 | Date | What changed | Why | Key files | Commit |
 |---|---|---|---|---|
 | 7 Nov | **Photo capture screen** (`/capture`): snap or choose a photo of a receipt-book page → the page hands it to the agent (`sendToAgentChat` with the image) → the agent saves every row with `save-capture-rows` as drafts → the bursar checks an editable table beside the photo (unclear fields highlighted; unknown student, used receipt number, bad date, class mismatch shown per row) → **Add N receipts** (`confirm-capture`) adds them through the normal receipt rules as `source: "photo"`; failed rows stay with their reason. Rows can also be typed (no AI). New tables `capture_batches`, `capture_rows` (migration `feedesk-photo-capture`). **Review fixes** (from a Grok review): the to-review count says what it is made of; Check buttons always visible; a real "Snap a receipt page" button; correct tags (Duplicate, Banked later?); one wording per action shared by Overview and review page; numerals instead of spelled-out numbers; hint placeholders; darker small text | The photo is the demo's hero; the review found confusing counts and missing entry points | `app/routes/capture.tsx`, `server/lib/capture.ts`, `actions/{start,save,get,confirm}-capture*.ts`, `server/plugins/db.ts`, `app/lib/explain-flag.ts`, `app/routes/{dashboard,flags}.tsx`, `app/global.css`, `AGENTS.md`, `tests/capture.test.ts` | `6ca7d59` |
-| 7 Nov | **First real photo test** (Kwame, GPT-6 Luna via Builder): 4 rows read in 26 s; numbers, dates, amounts, methods right; two cursive names misread ("Ama" → "Anna" Frimpong, "Afful" → "Ekow Appiah"), one left unclear. Student matching now scores like a person would: matching name words, near-spellings (≤2 letters off) and the class on the receipt; one clear winner (never on class alone, never a tie) is pre-filled as a close match with a note. `save-capture-rows` now accepts near-miss field names in `unclear` ("student", "amount") instead of rejecting the call | The two misreads came back as "No student called…" although each had one obvious match; the agent's run showed "1 failed" | `server/lib/capture.ts`, `actions/save-capture-rows.ts`, `tests/capture.test.ts` | (this commit) |
+| 7 Nov | **First real photo test** (Kwame, GPT-6 Luna via Builder): 4 rows read in 26 s; numbers, dates, amounts, methods right; two cursive names misread ("Ama" → "Anna" Frimpong, "Afful" → "Ekow Appiah"), one left unclear. Student matching now scores like a person would: matching name words, near-spellings (≤2 letters off) and the class on the receipt; one clear winner (never on class alone, never a tie) is pre-filled as a close match with a note. `save-capture-rows` now accepts near-miss field names in `unclear` ("student", "amount") instead of rejecting the call | The two misreads came back as "No student called…" although each had one obvious match; the agent's run showed "1 failed" | `server/lib/capture.ts`, `actions/save-capture-rows.ts`, `tests/capture.test.ts` | `3387533` |
+
+
+### Phase 11 — Light by default; deploy prepared (Sat 7 Nov)
+
+| Date | What changed | Why | Key files | Commit |
+|---|---|---|---|---|
+| 7 Nov | **Light is the main theme** (no longer follows the computer's dark setting); a **Dark mode / Light mode** switch in the sidebar, remembered per device. **Deploy prepared:** `netlify.toml` cleaned (template's Google Analytics/Tag Manager IDs, its trusted origins and the hosted-harness flag removed; Node 22 pinned; invite-only sign-up with email verification off because there is no email service); verified here that the Netlify build succeeds and that `pnpm migrate:production` applies all three FeeDesk migrations; `docs/DEPLOY.md` with click-by-click Neon + Netlify steps | Kwame wants light as the default with dark as a choice; the deploy was overdue and the demo must be recorded on the live site | `app/root.tsx`, `app/components/layout/Sidebar.tsx`, `netlify.toml`, `docs/DEPLOY.md` | (this commit) |
 
 ---
 
@@ -225,6 +232,9 @@ agent; merges on GitHub show as Isaac Agyapong.
 | 23 | Photo rows | The agent writes rows to draft tables (`save-capture-rows`); only `confirm-capture`, pressed by the bursar, turns them into receipts | Handoff rule: nothing saved before confirmation; the screen and the agent share the same drafts, and the bursar edits beside the photo | The agent showing a table in chat and calling `add-receipt` itself (earlier rule) |
 | 24 | Getting the photo to the agent | The page sends the downscaled photo (≤1600px JPEG) with `sendToAgentChat({ images })`; the photo is not stored | Works without configured file storage; nothing large in SQL | Upload to file storage first (needs a provider; only matters if the photo must survive a reload) |
 | 25 | Numbers on screen | Numerals ("12 to review") instead of words | Review feedback: numerals scan faster, words break at large counts | Cheque-style words (part of the Banknote idea) |
+| 26 | Theme | Light by default for everyone; dark only by choosing it (sidebar switch) | The Banknote direction is designed light-first; Kwame's call | Follow the operating system (the template's default) |
+| 27 | Hosting | Netlify, git-connected to `scaffold-app`; Neon Postgres (Frankfurt); migrations in the production build | The template ships a Netlify config; every push redeploys; no local build needed on a laptop with a stray `DATABASE_URL` | Netlify CLI deploys from the laptop (the framework guide's route); Vercel/Render |
+| 28 | Who can sign in to the live site | `AUTH_SIGNUP=invited` + `AUTH_BOOTSTRAP_ADMINS` (Kwame), email verification off | No email service; open sign-up would let anyone use the AI credits; verification can't be delivered | Open sign-up with verification (needs an email provider); `AUTH_DISABLED` (exposes everything) |
 
 ---
 
@@ -233,10 +243,9 @@ agent; merges on GitHub show as Isaac Agyapong.
 **Not built yet (from the plan)**
 - No terms in the data: fees, balances and receipts are all for one term (the term on the School page is a label only).
 - **Students screen** (fee, paid, balance, status) and **reminder drafts** (`draft-reminders`).
-- **Deployment.** Nothing is hosted. `netlify.toml` is still the template's: it has the template's Google
-  Analytics/Tag Manager IDs (`GA_MEASUREMENT_ID`, `GTM_CONTAINER_ID`) and the template's
-  `BETTER_AUTH_TRUSTED_ORIGINS`. Remove or replace these before deploying. A hosted DB (e.g. Neon),
-  `BETTER_AUTH_SECRET` and file storage for photos are also still needed.
+- **Deployment** is prepared (`docs/DEPLOY.md`, cleaned `netlify.toml`, build and migrations verified
+  locally) but not yet done: it needs Kwame's Neon and Netlify accounts. Judges can't sign up to the live
+  site (invite-only); the Clips video is the public demo.
 
 **UX found confusing in testing**
 - The design critique was self-scored (`docs/design/CRITIQUE.md`), not done by an independent critic; contrast was checked by eye, not measured.
@@ -280,5 +289,5 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 ## 6. Last updated
 
-**7 Nov 2026**. Covers every commit up to **`6ca7d59`** ("Add the photo capture screen; apply review
-feedback"), plus the student-matching commit in Phase 10.
+**7 Nov 2026**. Covers every commit up to **`3387533`** ("Match misread student names by class and
+near-spelling"), plus the theme and deploy-preparation commit in Phase 11.

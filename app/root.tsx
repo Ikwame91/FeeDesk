@@ -50,7 +50,8 @@ export const links: LinksFunction = () => [
   { rel: "stylesheet", href: stylesheet },
 ];
 
-const THEME_INIT_SCRIPT = getThemeInitScript();
+// Light is FeeDesk's main theme; dark is a choice each person makes (sidebar switch), not the OS default.
+const THEME_INIT_SCRIPT = getThemeInitScript("light", false);
 const LOCALE_INIT_SCRIPT = getLocaleInitScript();
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -183,6 +184,7 @@ export default function Root() {
   return (
     <AppToolkitProvider>
       <AppProviders
+        defaultTheme="light"
         queryClient={queryClient}
         skeletonLayout={skeletonLayoutForPath(pathname)}
         i18n={{ catalog: i18nCatalog }}
