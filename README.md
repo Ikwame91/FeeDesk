@@ -22,27 +22,38 @@ nobody has time to check that they agree.
 4. **Flag only the problems:** receipt with no money, money with no receipt, amount
    differences, and duplicate receipts.
 5. **Resolve.** The bursar settles each flag with one tap or in chat.
-6. **Remind.** The agent drafts polite reminders for students who still owe. It never sends
-   anything.
+
+Students (fee, paid, balance) and reminder drafts are not built.
 
 The same actions run from a button click, from chat, and from a photo. People and the agent
 work on the same data.
 
 ## Status
 
-Work in progress for the Builder.io Agent-Native Hackathon (Nov 2026).
+Live demo: https://feedesk-gh.netlify.app (branch `scaffold-app`). Current detail is in
+[`docs/STATUS.md`](docs/STATUS.md). Deadline: **Tue 10 Nov 2026, 07:59 Accra**.
 
 - [x] App scaffolded and running
 - [x] Photo test passed (29 of 30 fields read from a handwritten page, nothing invented)
+- [x] Photo capture screen (`/capture`): the agent reads a page into rows; nothing is saved until Add
 - [x] Demo data and seed script (`pnpm demo:generate`, `pnpm demo:load`)
 - [x] Data tables and actions
-- [x] Matching and flags (Dashboard "Check everything", Flags screen)
-- [ ] Photo capture screen, Students and Reminders screens
-- [ ] Deployed demo
+- [x] Matching and flags (Overview "Check everything" / "Check without AI", Flags screen)
+- [x] Deployed demo (Netlify + Neon)
+- [ ] Students screen
+- [ ] Reminder drafts
 
 ## Run it locally
 
 Needs Node.js 22.22+ and pnpm.
+
+Two secrets, generated separately. Each is 64 hex characters. Use them in `.env` locally and
+again in Netlify. Do not commit them, and do not reuse one value for both.
+
+```bash
+openssl rand -hex 32   # BETTER_AUTH_SECRET — signs logins. Keep it; changing it signs everyone out
+openssl rand -hex 32   # SECRETS_ENCRYPTION_KEY — encrypts stored provider keys
+```
 
 ```bash
 corepack enable
@@ -51,8 +62,11 @@ pnpm dev
 ```
 
 Open http://localhost:8080, choose **Continue as local dev**, then connect an AI provider
-under **Connect AI**. Load the fictional demo data with `pnpm demo:load`, and run the
-matching without AI (no credits) with `pnpm demo:check` or the **Check without AI** button.
+under **Connect AI**. The check itself does not need a provider: **Check without AI** or
+`pnpm demo:check`. Load the fictional demo data with `pnpm demo:load`.
+
+To reset the local database to the fictional school, run `pnpm demo:load` again. The hosted
+reset is in [`docs/DEPLOY.md`](docs/DEPLOY.md). Placeholders only; never paste a real URL or secret into chat.
 
 ## Built with
 
@@ -61,4 +75,4 @@ matching without AI (no credits) with `pnpm demo:check` or the **Check without A
   3 Nov 2026.
 - React, React Router, Vite, Drizzle ORM, PGlite / Postgres, Tailwind CSS, Zod.
 
-Planning notes: [`docs/HANDOFF.md`](docs/HANDOFF.md).
+The 3 Nov planning brief is historical: [`docs/HANDOFF.md`](docs/HANDOFF.md). What is built now is [`docs/STATUS.md`](docs/STATUS.md).

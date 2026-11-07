@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { APP_TITLE } from "@/lib/app-config";
-import { flagLine, ghsText } from "@/lib/explain-flag";
+import { flagLine, ghsText, reviewBreakdown } from "@/lib/explain-flag";
 import { cn } from "@/lib/utils";
 
 export function meta() {
@@ -157,7 +157,7 @@ function Hero({ s }: { s: SummaryData | undefined }) {
       <div>
         <p className={big}>{s.unchecked}</p>
         <p className="mt-5 max-w-xl font-display text-[27px] leading-tight">
-          receipts are waiting to be checked against the money that <em className="whitespace-nowrap text-oxblood">actually arrived</em>.
+          receipts are waiting to be checked against the <em className="whitespace-nowrap text-oxblood">uploaded statements</em>.
         </p>
         <p className="tabular mt-3 text-sm text-muted-foreground">Nothing verified yet · {s.studentsOwing} students on the fee list</p>
       </div>
@@ -172,7 +172,7 @@ function Hero({ s }: { s: SummaryData | undefined }) {
         </span>
       </p>
       <p className="mt-5 max-w-[36rem] font-display text-[27px] leading-tight">
-        receipts are backed by money that <em className="whitespace-nowrap text-oxblood">actually arrived</em>.
+        receipts match a line in the <em className="whitespace-nowrap text-oxblood">uploaded statements</em>.
       </p>
       <p className="tabular mt-3 text-sm text-muted-foreground">
         {ghsText(s.verifiedGhs)} matched · {s.studentsOwing} students still owe {ghsText(s.owedGhs)}
@@ -201,25 +201,26 @@ function NeedsYou({
     if (receipts === 0) return null;
     return (
       <section className="mt-12 border-t-[1.5px] border-foreground pt-4">
-        <h2 className="font-display text-2xl font-semibold">{unchecked > 0 ? "Not checked yet" : "Nothing needs you"}</h2>
+        <h2 className="font-display text-2xl font-semibold">{unchecked > 0 ? "Not checked yet" : "No items to review"}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           {unchecked > 0
             ? `${unchecked} receipts are waiting. Check them and only the mismatches will come back here.`
-            : "Every receipt is either backed by money or has been decided on."}
+            : "Every receipt matches an uploaded line, or has a decision on it."}
         </p>
       </section>
     );
   }
   return (
     <section className="mt-12 border-t-[1.5px] border-foreground">
-      <div className="flex items-baseline justify-between pb-1 pt-4">
+      <div className="flex items-baseline justify-between gap-3 pb-1 pt-4">
         <h2 className="font-display text-2xl font-semibold">
-          {n} need{n === 1 ? "s" : ""} you
+          {n} {n === 1 ? "item" : "items"} to review
         </h2>
         <Link to="/flags" className="text-sm font-semibold text-oxblood hover:underline">
           Review all →
         </Link>
       </div>
+      <p className="tabular pb-1 text-[15px]">{reviewBreakdown(flags!)}</p>
       <ul>
         {flags!.slice(0, 4).map((f) => {
           const l = flagLine(f);

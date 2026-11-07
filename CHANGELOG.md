@@ -1,5 +1,8 @@
 # Changelog
 
+**Historical.** The entries below are the Chat template's changelog, kept from the scaffold.
+FeeDesk's record is [`docs/PROJECT_HISTORY.md`](docs/PROJECT_HISTORY.md).
+
 All notable user-facing changes to this app are documented here.
 
 ## 2026-10-10

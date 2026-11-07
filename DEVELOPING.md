@@ -1,58 +1,63 @@
-# feedesk — Development Guide
+# FeeDesk — Development Guide
 
 This guide is for development-mode agents editing this app's source code. For app operations and tools, see AGENTS.md.
+Current product status is [`docs/STATUS.md`](docs/STATUS.md). Visual rules are [`DESIGN.md`](DESIGN.md) (Banknote).
+
+The sections below the FeeDesk map still describe Agent-Native mechanics inherited from the Chat template.
+Where they say the app's home is a full-page chat at `/`, that is the template. FeeDesk's signed-in home is `/dashboard`.
 
 ## Tech Stack
 
-- **Framework:** @agent-native/core + React Router v8 (framework mode)
-- **Frontend:** React 19, Vite, TailwindCSS, shadcn/ui
+- **Framework:** @agent-native/core 0.223.0 + React Router v8 (framework mode)
+- **Frontend:** React 19, Vite, Tailwind CSS 4. Banknote theme in `app/global.css` (Bodoni Moda + Public Sans)
 - **Routing:** File-based via `flatRoutes()` — SSR shell + client rendering
-- **Backend:** Nitro (via @agent-native/core) — file-based API routing, server plugins, deploy-anywhere presets
-- **State:** SQL-backed (SSE for real-time updates)
+- **Backend:** Nitro (via @agent-native/core) — file-based API routing, server plugins
+- **Data:** Drizzle on PGlite locally (`./data/pglite`), Postgres when `DATABASE_URL` is a Postgres URL
+- **Hosted:** https://feedesk-gh.netlify.app from branch `scaffold-app`, Neon Postgres. Steps in `docs/DEPLOY.md`
 
 ## Commands
 
-- **Dev:** `pnpm dev` (Vite dev server with both React Router + Nitro plugins)
-- **Build:** `pnpm build` (React Router build — client + SSR + Nitro server)
+- **Dev:** `pnpm dev` → http://localhost:8080
+- **Build:** `pnpm build`
 - **Start:** `node .output/server/index.mjs` (production)
+- **Checks:** `pnpm test`, `pnpm typecheck`, `pnpm agent-native:doctor`
+- **Demo:** `pnpm demo:load` resets local fictional data. `pnpm demo:check` runs the match with no AI
 
 ## Directory Structure
 
 ```
-app/                   # React frontend
-  root.tsx             # HTML shell + global providers
-  entry.client.tsx     # Client hydration entry
-  routes.ts            # Route config — flatRoutes()
-  routes/              # File-based page routes (auto-discovered)
-    _index.tsx         # / (chat page)
-  components/          # UI components
-  hooks/               # React hooks
-  lib/                 # Utilities (cn, etc)
-
-server/                # Nitro API server
-  routes/
-    api/               # Route-only endpoints (uploads, webhooks, OAuth, streaming)
-    [...page].get.ts   # SSR catch-all (delegates to React Router)
-  plugins/             # Server plugins (startup logic)
-  lib/                 # Shared server modules
-
-shared/                # Isomorphic code (imported by both client & server)
-
-actions/               # Shared app operations (defineAction; UI uses action hooks)
-  run.ts               # Script dispatcher
-  *.ts                 # Individual actions (pnpm action <name>)
-
-data/pglite/           # Local PGlite data directory
-
-react-router.config.ts # React Router framework config
-.agents/skills/        # Agent skills — detailed guidance for each rule
+app/routes/dashboard.tsx   # /dashboard  Overview (signed-in home)
+app/routes/flags.tsx       # /flags      To review
+app/routes/capture.tsx     # /capture    Photo or typed receipt rows
+app/routes/school.tsx      # /school     Name, term, MoMo number
+app/routes/chat.*          # /chat       Full-page chat
+app/lib/explain-flag.ts    # Flag sentences (uploaded evidence only)
+server/lib/                # money, importers, matching, reconcile, capture
+server/plugins/db.ts       # Three named migrations (see below)
+actions/                   # One file = UI hook + agent tool + HTTP + CLI
+seed/                      # Fictional demo data and answer-key.json
+docs/STATUS.md             # What is done
 ```
+
+Migrations in `server/plugins/db.ts`, applied in order, never edited once they have run:
+
+1. `feedesk-core-tables` — students, receipts, money_lines, matches, flags
+2. `feedesk-proposed-matches` — `proposed` match state and `flags.match_id`
+3. `feedesk-photo-capture` — `capture_batches`, `capture_rows`
 
 ## Framework Basics
 
 **SSR-first framework, CSR-by-default content:** This app uses React Router v8 framework mode with `ssr: true`. But virtually every route renders only an SSR shell (loading spinner + meta tags). Normal app data fetching happens on the client via action hooks. Server-side data fetching is the exception — only used for public pages that need SEO/OG tags.
 
-## Chat-First Shape
+## Chat beside the work
+
+FeeDesk's signed-in landing is Overview (`/dashboard`), set as `app.homePath` in
+`server/plugins/agent-native-email-branding.ts`. `/` is the shared sign-in page.
+Chat also lives in the right-hand panel on Overview, Flags, Capture, and School, and full-page at `/chat`.
+The same actions serve a click, the panel, and a confirmed photo row.
+
+The paragraphs under this heading are the Chat template's AgentKit notes. They still describe how the
+composer and transport work. They do not describe FeeDesk's primary screen.
 
 Agent-Native is the application framework and execution platform. AgentKit is
 its agent interaction and experience layer. Toolkit supplies the semantic
@@ -239,10 +244,15 @@ sharing helpers such as `ownableColumns()` and `createSharesTable()` from
 `@agent-native/core/db/schema`. Keep SQL PostgreSQL-compatible and reserve raw
 SQL for additive migrations, health checks, or carefully scoped maintenance.
 
-| Variable        | Required                     | Description                                                                   |
-| --------------- | ---------------------------- | ----------------------------------------------------------------------------- |
-| `DATABASE_URL`  | Production yes, local dev no | PostgreSQL or PGlite database URL (local dev default: `pglite:./data/pglite`) |
-| `AUTH_DISABLED` | Optional                     | Set to `true` or `1` to skip login/signup (local dev/preview only)            |
+| Variable | Required | Description |
+| --- | --- | --- |
+| `DATABASE_URL` | Production yes, local dev no | Postgres URL when hosted. Local default is PGlite at `./data/pglite` |
+| `BETTER_AUTH_SECRET` | Local and Netlify | Signs logins. `openssl rand -hex 32`. Not the encryption key |
+| `SECRETS_ENCRYPTION_KEY` | Local and Netlify | Encrypts stored provider keys. A second `openssl rand -hex 32`. Not the auth secret |
+| `AUTH_DISABLED` | Optional | `true` skips login locally only. Never on the hosted site |
+| `AUTH_BOOTSTRAP_ADMINS` | Hosted | The one email allowed to sign up |
+
+Leave secrets empty in the repo. `.env.example` shows the names only.
 
 ## Extensions (Framework Feature)
 

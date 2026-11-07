@@ -9,7 +9,7 @@ FeeDesk helps a school bursar check fee receipts against the money that actually
 **Rules**
 - Every match has a confidence (0-1) and a reason under 20 words naming the evidence. record-match auto-accepts only >= 0.9 with exact amounts; everything else becomes a flag.
 - Cash: a day's cash receipts are covered by a bank deposit that adds up exactly.
-- Flags are neutral: describe the mismatch, never suggest theft or blame anyone.
+- Flags are neutral and stay inside the uploaded receipts and statements. Say what those files show ("No matching bank deposit found in the uploaded statements", "No matching receipt found"). Never say money is missing, never say it arrived, and never suggest theft or blame anyone.
 - Money is GHS with 2 decimals (stored as pesewas); never round or guess. Dates are YYYY-MM-DD; receipt books write 02/11/26 = 2 Nov 2026.
 - Read the screen (`view-screen`) before acting on "this", "that one", "these".
 
@@ -60,7 +60,7 @@ For custom branding, keep `server/plugins/agent-native-email-branding.ts` aligne
 
 Choose the primary workflow and route before editing. Add a domain route under `app/routes/` and set `app.homePath` in `server/plugins/agent-native-email-branding.ts` with `defineAppConfig`. The default Get started page lives at `/home`, and Chat stays at `/chat`; edit `app/routes/home.tsx` when replacing that page with a domain-specific home. Add a static link in `app/components/layout/Sidebar.tsx` before `ChatThreadsSection`; `Header.tsx` uses `APP_TITLE` elsewhere. Shared sidebar and AgentInspector remain.
 
-Use `adding-a-feature` for functional parity and `frontend-design` for a user-facing screen. Keep feature guidance here; do not rewrite `README.md` or `DESIGN.md`. After all edits, run one typecheck, one doctor check, and one browser smoke of the primary workflow, including overlap rejection, cancellation freeing the slot, and authenticated landing. Skip production build and extra test suites.
+Use `adding-a-feature` for functional parity and `frontend-design` for a user-facing screen. Keep feature guidance here, and keep `README.md`, `DESIGN.md`, and `docs/STATUS.md` accurate when the product changes. After edits, run `pnpm test`, `pnpm typecheck`, `pnpm agent-native:doctor`, and `pnpm build`. In the browser, check receipt validation (a bad amount, a reused receipt number, a date outside the window), capture confirmation (rows stay drafts until Add), the reconciliation numbers on the fictional demo data (never change `seed/answer-key.json` to make a test pass), and that a signed-in session lands on Overview (`/dashboard`).
 
 Before building common workspace or agent UI, read `agent-native-toolkit`; for supported customization, read `customizing-agent-native`.
 

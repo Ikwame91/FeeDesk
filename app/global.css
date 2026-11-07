@@ -9,7 +9,7 @@
 
 :root {
   /* FeeDesk "Banknote" direction (docs/design/DIRECTION.md).
-     Bone paper, near-black ink, one intaglio oxblood that means "act here" / "money missing". */
+     Bone paper, near-black ink, one intaglio oxblood that means "act here". */
   --background: 70 14% 92%;
   --foreground: 156 9% 11%;
   --card: 75 17% 95%;
@@ -40,6 +40,8 @@
   --sidebar-ring: 2 56% 35%;
   --oxblood: 2 56% 35%;
   --rule: 78 10% 80%;
+  /* Example text. Lighter than secondary ink, still 4.5:1 on paper and on cards. */
+  --placeholder: 137 8% 40%;
   --chat-sidebar-width: 17.5rem;
   --chat-sidebar-content-inset: 0.5rem;
   --chat-sidebar-row-padding: 0.75rem;
@@ -266,6 +268,7 @@
   --sidebar-ring: 7 52% 62%;
   --oxblood: 7 52% 62%;
   --rule: 147 8% 19%;
+  --placeholder: 135 8% 52%;
 }
 
 @layer base {
@@ -295,6 +298,7 @@
   --font-display: "Bodoni Moda Variable", "Bodoni Moda", Didot, serif;
   --color-oxblood: hsl(var(--oxblood));
   --color-rule: hsl(var(--rule));
+  --color-placeholder: hsl(var(--placeholder));
 }
 
 .tabular {
@@ -329,10 +333,75 @@
     radial-gradient(16% 28% at 50% 70%, hsl(42 40% 35% / 0.14), transparent);
 }
 
-/* Placeholders read as hints, never as values already filled in. */
+/* Placeholders read as examples: italic, and a token that still passes contrast. */
 input::placeholder, textarea::placeholder {
-  color: hsl(var(--muted-foreground) / 0.5);
+  color: hsl(var(--placeholder));
   font-style: italic;
+  opacity: 1;
+}
+
+/*
+  The consent banner stays on screen. It sits in space the page and the chat
+  sheet leave empty, so it does not cover a button or the composer.
+*/
+:root {
+  --feedesk-consent-clearance: 0px;
+}
+body:has([data-agent-native-consent-banner]) {
+  --feedesk-consent-clearance: 12.5rem;
+}
+[data-agent-native-consent-banner] {
+  left: max(0.75rem, env(safe-area-inset-left));
+  right: auto;
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+  width: min(22rem, calc(100vw - 1.5rem));
+  max-height: min(38dvh, 12.5rem);
+  overflow: auto;
+  z-index: 85;
+}
+@media (min-width: 768px) {
+  [data-agent-native-consent-banner] {
+    left: calc(var(--chat-sidebar-width, 17.5rem) + 1rem);
+    /* Stay in the page column, clear of a chat panel on the right. */
+    width: min(22rem, calc(100vw - var(--chat-sidebar-width, 17.5rem) - 22rem));
+  }
+  body:has([data-agent-native-consent-banner]) .agent-native-app-main {
+    margin-bottom: var(--feedesk-consent-clearance);
+  }
+}
+@media (max-width: 767px) {
+  [data-agent-native-consent-banner] {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    border-radius: 0;
+  }
+  /* The page column ends where the banner begins, so the last control can scroll fully into view. */
+  body:has([data-agent-native-consent-banner]) .agent-native-app-main {
+    margin-bottom: var(--feedesk-consent-clearance);
+  }
+  /* A phone chat panel is a sheet above the page, not a cover over the rows. */
+  .agent-sidebar-panel[data-agent-sidebar-layout="mobile"][data-agent-sidebar-state="open"] {
+    top: auto !important;
+    right: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: min(42dvh, 22rem) !important;
+    bottom: var(--feedesk-consent-clearance) !important;
+  }
+  .agent-sidebar-backdrop[data-agent-sidebar-state="open"] {
+    background: transparent;
+    backdrop-filter: none;
+    pointer-events: none;
+  }
+  body:has(.agent-sidebar-panel[data-agent-sidebar-layout="mobile"][data-agent-sidebar-state="open"]) .agent-native-app-main {
+    margin-bottom: min(42dvh, 22rem);
+  }
+  body:has([data-agent-native-consent-banner]):has(.agent-sidebar-panel[data-agent-sidebar-layout="mobile"][data-agent-sidebar-state="open"]) .agent-native-app-main {
+    margin-bottom: calc(min(42dvh, 22rem) + var(--feedesk-consent-clearance));
+  }
 }
 
 /* While the agent reads a photo, the seal turns slowly. */

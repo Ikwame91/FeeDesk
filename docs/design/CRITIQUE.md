@@ -1,5 +1,9 @@
 # FeeDesk — Critique log
 
+**Historical.** Self-scored critique of the 7 Nov Banknote exploration. It describes that round
+("Twelve need you", the shots under `shots/`), not the current screens. Current UI is in the app
+and in [`DIRECTION.md`](DIRECTION.md). The `shots/` PNGs are not in this repo.
+
 Rubric and stop rule from App Designer's `critique.md` (scores 1–5; done = no line below 3 and at least
 9 of 12 at 4+). **Self-scored**: no separate critic agent was used, to save time and cost. Read these as
 the designer's harsh self-assessment, not an independent review. "Native fluency" is judged as a laptop web

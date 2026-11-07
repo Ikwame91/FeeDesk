@@ -63,7 +63,7 @@ export default function SchoolRoute() {
               <Input
                 id="school-term"
                 maxLength={60}
-                placeholder="First term 2026/27"
+                placeholder="e.g. First term 2026/27"
                 value={form.termLabel}
                 onChange={(e) => setForm((f) => ({ ...f, termLabel: e.target.value }))}
                 className="bg-card"
@@ -74,7 +74,7 @@ export default function SchoolRoute() {
               <Input
                 id="school-momo"
                 inputMode="tel"
-                placeholder="0559000111"
+                placeholder="e.g. 0559000111"
                 value={form.momoNumber}
                 onChange={(e) => setForm((f) => ({ ...f, momoNumber: e.target.value }))}
                 className="tabular bg-card"

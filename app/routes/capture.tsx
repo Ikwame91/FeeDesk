@@ -23,6 +23,74 @@ export function meta() {
 type Field = "receiptNo" | "date" | "studentId" | "className" | "amountGhs" | "method";
 type Edits = Record<string, Partial<Record<Field, string>>>;
 
+/** The receipt photo, with rotate and zoom so a sideways page can be compared with the rows. */
+function ReceiptPhoto({ src }: { src: string }) {
+  const [quarterTurns, setQuarterTurns] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  const [natural, setNatural] = useState({ w: 3, h: 4 });
+  const rotation = quarterTurns * 90;
+  const sideways = quarterTurns % 2 === 1;
+  const fit = 640;
+  const scale = Math.min(1, fit / Math.max(natural.w, natural.h));
+  const dispW = Math.max(1, Math.round(natural.w * scale * zoom));
+  const dispH = Math.max(1, Math.round(natural.h * scale * zoom));
+  const boxW = sideways ? dispH : dispW;
+  const boxH = sideways ? dispW : dispH;
+
+  return (
+    <div>
+      <div className="overflow-auto rounded-sm border border-rule bg-card" style={{ maxHeight: "min(34vh, 28rem)" }}>
+        <div className="relative mx-auto" style={{ width: boxW, height: boxH }}>
+          <img
+            src={src}
+            alt="The receipt-book page being read"
+            draggable={false}
+            onLoad={(e) => {
+              const w = e.currentTarget.naturalWidth;
+              const h = e.currentTarget.naturalHeight;
+              if (w > 0 && h > 0) setNatural({ w, h });
+            }}
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              width: dispW,
+              height: dispH,
+              maxWidth: "none",
+              transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+            }}
+          />
+        </div>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-1 gap-y-1">
+        <button type="button" className="min-h-11 px-2 text-sm font-semibold text-oxblood hover:underline" onClick={() => setQuarterTurns((q) => (q + 3) % 4)}>
+          Rotate left
+        </button>
+        <button type="button" className="min-h-11 px-2 text-sm font-semibold text-oxblood hover:underline" onClick={() => setQuarterTurns((q) => (q + 1) % 4)}>
+          Rotate right
+        </button>
+        <button
+          type="button"
+          className="min-h-11 px-2 text-sm font-semibold text-oxblood hover:underline disabled:text-muted-foreground disabled:no-underline"
+          disabled={zoom <= 1}
+          onClick={() => setZoom((z) => Math.max(1, Math.round((z - 0.5) * 10) / 10))}
+        >
+          Zoom out
+        </button>
+        <button
+          type="button"
+          className="min-h-11 px-2 text-sm font-semibold text-oxblood hover:underline disabled:text-muted-foreground disabled:no-underline"
+          disabled={zoom >= 3}
+          onClick={() => setZoom((z) => Math.min(3, Math.round((z + 0.5) * 10) / 10))}
+        >
+          Zoom in
+        </button>
+        <span className="tabular px-2 text-sm text-muted-foreground">{Math.round(zoom * 100)}%</span>
+      </div>
+    </div>
+  );
+}
+
 /** Shrink a phone photo to at most 1600px on its long side, as JPEG, before it goes to the agent. */
 async function photoToDataUrl(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file);
@@ -189,22 +257,18 @@ export default function CaptureRoute() {
           </div>
         </header>
 
-        {/* Side by side only when this page itself has room (the agent panel takes space), else photo on top. */}
+        {/* Side by side when the column has room; otherwise the photo stacks above the rows and stays short so the rows remain on screen. */}
         <div className="@container mt-8 border-t-[1.5px] border-foreground pt-6">
-        <div className="grid gap-8 @[68rem]:grid-cols-[minmax(0,4fr)_minmax(0,7fr)]">
+        <div className="grid gap-8 @[48rem]:grid-cols-[minmax(0,4fr)_minmax(0,7fr)]">
           {/* The photo */}
-          <section aria-label="Photo" className="@[68rem]:sticky @[68rem]:top-4 @[68rem]:self-start">
+          <section aria-label="Photo" className="@[48rem]:sticky @[48rem]:top-4 @[48rem]:self-start">
             {photoUrl ? (
-              <img
-                src={photoUrl}
-                alt="The receipt-book page being read"
-                className="max-h-[420px] w-full rounded-sm border border-rule bg-card object-contain shadow-sm @[68rem]:max-h-none"
-              />
+              <ReceiptPhoto key={photoUrl} src={photoUrl} />
             ) : (
               <button
                 type="button"
                 onClick={() => fileInput.current?.click()}
-                className="feedesk-underprint flex min-h-[260px] w-full flex-col items-center justify-center gap-4 rounded-sm border border-dashed border-foreground/40 p-8 text-center @[68rem]:aspect-[3/4]"
+                className="feedesk-underprint flex min-h-[200px] w-full flex-col items-center justify-center gap-4 rounded-sm border border-dashed border-foreground/40 p-8 text-center @[48rem]:aspect-[3/4]"
               >
                 <IconCamera className="size-10 text-oxblood" strokeWidth={1.3} />
                 <span className="font-display text-2xl">{batchId ? "The photo stays only in the tab it was taken in" : "Take or choose a photo"}</span>
@@ -258,12 +322,70 @@ export default function CaptureRoute() {
                   )}
                 </div>
 
-                <div className="mt-3 overflow-x-auto">
-                  <table className="w-full min-w-[720px] text-sm">
+                <div className="mt-3 flex flex-col gap-4 @[40rem]:hidden">
+                  {rows.map((r) => {
+                    const unclear = new Set(r.unclear);
+                    const cell = (f: Field) =>
+                      cn(
+                        "h-11 w-full rounded-[var(--radius)] border bg-card px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+                        unclear.has(f === "studentId" ? "studentName" : f) && !edits[r.rowId]?.[f] ? "border-oxblood bg-oxblood/5" : "border-input",
+                      );
+                    const err = rowErrors[r.rowId];
+                    if (r.added) {
+                      return (
+                        <article key={r.rowId} className="border-b border-rule pb-3 text-sm text-muted-foreground">
+                          <p className="tabular font-display text-lg italic text-foreground">№ {r.receiptNo}</p>
+                          <p>Added · {r.studentName} · GHS {r.amountGhs}</p>
+                        </article>
+                      );
+                    }
+                    return (
+                      <article key={r.rowId} className="grid grid-cols-2 gap-3 border-b border-rule pb-4">
+                        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                          №
+                          <input aria-label="Receipt number" className={cn(cell("receiptNo"), "tabular")} value={value(r, "receiptNo")} placeholder={unclear.has("receiptNo") ? "unclear" : ""} onChange={(e) => setCell(r.rowId, "receiptNo", e.target.value)} />
+                        </label>
+                        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                          Date
+                          <span className="text-xs text-placeholder">DD/MM/YYYY</span>
+                          <input aria-label="Date" aria-describedby="capture-date-hint" type="date" className={cn(cell("date"), "tabular")} value={value(r, "date")} onChange={(e) => setCell(r.rowId, "date", e.target.value)} />
+                        </label>
+                        <label className="col-span-2 flex flex-col gap-1 text-xs text-muted-foreground">
+                          Student
+                          <select aria-label="Student" className={cell("studentId")} value={value(r, "studentId")} onChange={(e) => setCell(r.rowId, "studentId", e.target.value)}>
+                            <option value="">{r.studentName ? `"${r.studentName}"? choose…` : "Choose…"}</option>
+                            {students.map((s) => (
+                              <option key={s.id} value={s.id}>{s.name} · {s.className}</option>
+                            ))}
+                          </select>
+                          <RowNotes problems={err ? [err] : r.check.problems} warnings={err ? [] : r.check.warnings} />
+                        </label>
+                        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                          Class
+                          <input aria-label="Class" className={cell("className")} value={value(r, "className")} placeholder={unclear.has("className") ? "unclear" : ""} onChange={(e) => setCell(r.rowId, "className", e.target.value)} />
+                        </label>
+                        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                          GHS
+                          <input aria-label="Amount in GHS" inputMode="decimal" className={cn(cell("amountGhs"), "tabular text-right")} value={value(r, "amountGhs")} placeholder={unclear.has("amountGhs") ? "unclear" : ""} onChange={(e) => setCell(r.rowId, "amountGhs", e.target.value)} />
+                        </label>
+                        <label className="col-span-2 flex flex-col gap-1 text-xs text-muted-foreground">
+                          Paid by
+                          <select aria-label="Paid by" className={cell("method")} value={value(r, "method")} onChange={(e) => setCell(r.rowId, "method", e.target.value)}>
+                            <option value="">—</option>
+                            <option value="cash">Cash</option>
+                            <option value="momo">MoMo</option>
+                          </select>
+                        </label>
+                      </article>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 hidden overflow-x-auto @[40rem]:block">
+                  <table className="w-full min-w-[36rem] text-sm">
                     <thead className="text-left text-xs text-muted-foreground">
                       <tr className="border-b border-foreground/70">
                         <th className="py-2 pr-2 font-medium">№</th>
-                        <th className="py-2 pr-2 font-medium">Date</th>
+                        <th className="py-2 pr-2 font-medium">Date<span id="capture-date-hint" className="mt-0.5 block font-normal text-placeholder">DD/MM/YYYY</span></th>
                         <th className="py-2 pr-2 font-medium">Student</th>
                         <th className="py-2 pr-2 font-medium">Class</th>
                         <th className="py-2 pr-2 text-right font-medium">GHS</th>
@@ -303,7 +425,7 @@ export default function CaptureRoute() {
                               <input aria-label="Receipt number" className={cn(cell("receiptNo"), "tabular")} value={value(r, "receiptNo")} placeholder={unclear.has("receiptNo") ? "unclear" : ""} onChange={(e) => setCell(r.rowId, "receiptNo", e.target.value)} />
                             </td>
                             <td className="w-36 py-2 pr-2">
-                              <input aria-label="Date" type="date" className={cn(cell("date"), "tabular")} value={value(r, "date")} onChange={(e) => setCell(r.rowId, "date", e.target.value)} />
+                              <input aria-label="Date" aria-describedby="capture-date-hint" type="date" className={cn(cell("date"), "tabular")} value={value(r, "date")} onChange={(e) => setCell(r.rowId, "date", e.target.value)} />
                             </td>
                             <td className="py-2 pr-2">
                               <select aria-label="Student" className={cell("studentId")} value={value(r, "studentId")} onChange={(e) => setCell(r.rowId, "studentId", e.target.value)}>

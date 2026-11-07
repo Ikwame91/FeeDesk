@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { APP_TITLE } from "@/lib/app-config";
-import { ACTION, dayText, explainFlag, flagLine, flagTag, ghsText, titleCase } from "@/lib/explain-flag";
+import { ACTION, dayText, explainFlag, flagLine, flagTag, ghsText, reviewBreakdown, titleCase } from "@/lib/explain-flag";
 import { cn } from "@/lib/utils";
 
 export function meta() {
@@ -95,10 +95,10 @@ export default function FlagsRoute() {
               {n === 0 ? "Nothing to review" : `${n} to review`}
             </h1>
           )}
-          {s && n > 0 && <p className="tabular mt-3 text-[15px]">{breakdown(flags)}</p>}
+          {s && n > 0 && <p className="tabular mt-3 text-[15px]">{reviewBreakdown(flags)}</p>}
           {s && (
             <p className="tabular mt-1 text-sm text-muted-foreground">
-              {s.verified} of {s.receipts} receipts are backed by money · {s.studentsOwing} students owe {ghsText(s.owedGhs)}
+              {s.verified} of {s.receipts} receipts match an uploaded line · {s.studentsOwing} students owe {ghsText(s.owedGhs)}
             </p>
           )}
         </header>
@@ -117,7 +117,7 @@ export default function FlagsRoute() {
                   <Link to="/dashboard" className="text-oxblood underline underline-offset-4">Overview</Link>.
                 </>
               ) : (
-                <>Every receipt is backed by money or has a decision on it.</>
+                <>Every receipt matches an uploaded line, or has a decision on it.</>
               )}
             </p>
             {s && s.unchecked === 0 && <Seal label="all square" className="w-[200px]" />}
@@ -139,19 +139,6 @@ export default function FlagsRoute() {
       </div>
     </div>
   );
-}
-
-/** "11 about receipts (13 receipts) · 7 payments with no receipt" — what the count is made of. */
-function breakdown(flags: Flag[]): string {
-  const payments = flags.filter((f) => f.kind === "no_receipt").length;
-  const aboutReceipts = flags.length - payments;
-  const receiptCount = flags
-    .filter((f) => f.kind !== "no_receipt")
-    .reduce((t, f) => t + (f.proposedMatch?.receipts.filter(Boolean).length || (f.receipt ? 1 : 0)), 0);
-  const parts = [];
-  if (aboutReceipts) parts.push(`${aboutReceipts} about receipts${receiptCount !== aboutReceipts ? ` (${receiptCount} receipts)` : ""}`);
-  if (payments) parts.push(`${payments} payment${payments === 1 ? "" : "s"} with no receipt`);
-  return parts.join(" · ");
 }
 
 interface FlagReceipt {
@@ -236,7 +223,7 @@ function FlagEntry({
       <div className="flex min-w-0 flex-col gap-4">
         <h2 className="font-display text-[22px] font-semibold leading-tight">{ex.title}</h2>
 
-        {/* The two sides, side by side: what was written, what arrived */}
+        {/* The two sides: the receipt book, and the uploaded statement. */}
         <div className="grid gap-4 text-sm sm:grid-cols-2">
           <div>
             <p className="text-xs text-muted-foreground">Written in the receipt book</p>
@@ -251,11 +238,11 @@ function FlagEntry({
                 </p>
               ))
             ) : (
-              <p className="mt-1 text-muted-foreground">Nothing written</p>
+              <p className="mt-1 text-muted-foreground">No receipt on file</p>
             )}
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">What actually arrived</p>
+            <p className="text-xs text-muted-foreground">Uploaded statement</p>
             {f.moneyLine ? (
               <p className="mt-1">
                 <span className="tabular font-semibold">{ghsText(f.moneyLine.amountGhs)}</span>{" "}
@@ -263,12 +250,12 @@ function FlagEntry({
                 <span className="block text-muted-foreground">
                   {f.moneyLine.source === "momo"
                     ? [f.moneyLine.payerName && titleCase(f.moneyLine.payerName), f.moneyLine.payerPhone].filter(Boolean).join(" · ")
-                    : "Cash deposit at the bank"}
+                    : "Bank statement line"}
                   {f.moneyLine.reference && f.moneyLine.source === "momo" ? ` · “${f.moneyLine.reference}”` : ""}
                 </span>
               </p>
             ) : (
-              <p className="mt-1 font-semibold text-oxblood">Nothing found</p>
+              <p className="mt-1 font-semibold text-oxblood">No matching line in the uploaded statements</p>
             )}
           </div>
         </div>

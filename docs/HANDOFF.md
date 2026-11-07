@@ -1,5 +1,9 @@
 # FeeDesk — Build Handoff
 
+**Historical.** This is the planning brief from Tue 3 Nov 2026 (Accra). It is not the current
+status. What is built, what is not, and how to run the demo are in [`STATUS.md`](STATUS.md).
+The submission deadline below (Tue 10 Nov 2026, 07:59 Accra) is still the deadline.
+
 Handoff from a planning conversation (Tue 3 Nov 2026, Accra) to Claude Code for the build.
 Read this fully before writing code. Live plan doc: https://claude.ai/artifact/GqYDXHDJsCVLQ1oQhha8TM
 

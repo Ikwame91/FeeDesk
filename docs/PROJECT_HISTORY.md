@@ -15,8 +15,9 @@ photo of the receipt book), the MoMo merchant statement and the bank statement. 
 receipt to the money that paid for it and puts only the mismatches in a review queue (the Flags screen).
 All data is fictional: "Adenta Hills Academy".
 
-Built for the Builder.io Agent-Native Hackathon (deadline Mon 9 Nov 2026, 11:59 PM PT). The plan is in
-[`docs/HANDOFF.md`](HANDOFF.md).
+Built for the Builder.io Agent-Native Hackathon. Deadline: **Tue 10 Nov 2026, 07:59 Accra**
+(Mon 9 Nov 2026, 11:59 PM PT). The 3 Nov plan is the historical brief [`docs/HANDOFF.md`](HANDOFF.md).
+What is running now is [`docs/STATUS.md`](STATUS.md). Live site: https://feedesk-gh.netlify.app.
 
 **Stack**
 - Design: "Banknote" direction, see [`docs/design/DIRECTION.md`](design/DIRECTION.md).
@@ -41,22 +42,23 @@ Other commands: `pnpm demo:check` (run the matching without AI), `pnpm demo:gene
 
 ## 2. Current architecture
 
-**Deployed** on Netlify (git-connected to `scaffold-app`, every push redeploys) with Neon Postgres
-(Frankfurt). Sign-up is invite-only. Steps in [`docs/DEPLOY.md`](DEPLOY.md).
+**Deployed** at https://feedesk-gh.netlify.app (Netlify, git-connected to `scaffold-app`, every push
+redeploys) with Neon Postgres (Frankfurt). Sign-up is invite-only. Steps in [`docs/DEPLOY.md`](DEPLOY.md).
 
 ```mermaid
 flowchart LR
   subgraph Browser
     D["/dashboard<br/>headline, CSV uploads,<br/>Add receipt, Check buttons"]
     P["/capture<br/>photo + editable rows"]
-    F["/flags<br/>review queue cards"]
+    F["/flags<br/>review queue"]
+    S["/school<br/>name, term, MoMo number"]
     C["Agent chat panel<br/>(photo reading, chat commands)"]
   end
 
   subgraph Actions["actions/ (one file = UI hook + agent tool + HTTP + CLI)"]
     A1["import-students<br/>import-statement<br/>add-receipt<br/>save/confirm-capture"]
     A2["run-check · find-candidates<br/>record-match · raise-flag"]
-    A3["resolve-flag · list-flags<br/>get-summary · list-receipts · list-students"]
+    A3["resolve-flag · list-flags<br/>get-summary · list-receipts · list-students<br/>school settings"]
     A4["load-demo-data (CLI only)"]
   end
 
@@ -67,7 +69,7 @@ flowchart LR
     L4["reconcile<br/>(record, flag, resolve, summary)"]
   end
 
-  DB[("Postgres / PGlite<br/>students · receipts · money_lines<br/>matches · flags")]
+  DB[("Postgres / PGlite<br/>students · receipts · money_lines<br/>matches · flags<br/>capture_batches · capture_rows")]
   LLM["LLM provider<br/>(Builder.io or custom key)"]
   SEED["seed/*.csv + answer-key.json<br/>(scripts/generate-demo-data.ts)"]
 
@@ -75,6 +77,7 @@ flowchart LR
   P --> A1
   P -->|photo| C
   F --> A3
+  S --> A3
   C <--> LLM
   C -->|tool calls| A1 & A2 & A3
   A1 --> L1 --> L2
@@ -100,15 +103,17 @@ flowchart LR
   `receiptNos`), and resolving flags from plain-language instructions ("those three were banked together
   Monday"). Its rules are the FeeDesk section at the top of `AGENTS.md`.
 - **Context sharing:** `app/hooks/use-navigation-state.ts` publishes the current view (`dashboard`,
-  `flags`) and the selected flag card (`flagId`), so "this one" in chat means the card on screen.
+  `capture`, `flags`, `school`) and the selected flag (`flagId`) or capture batch (`captureBatchId`),
+  so "this one" in chat means the card on screen.
 - **Schema & migrations:** `server/db/schema.ts` (Drizzle) and `server/plugins/db.ts` (named, additive
-  migrations: `feedesk-core-tables`, `feedesk-proposed-matches`). Money is integer pesewas everywhere.
+  migrations: `feedesk-core-tables`, `feedesk-proposed-matches`, `feedesk-photo-capture`). Money is
+  integer pesewas everywhere. Photo rows live in `capture_batches` and `capture_rows` until confirmed.
 
 **Main files**
 
 | Area | Files |
 |---|---|
-| Screens | `app/routes/dashboard.tsx`, `app/routes/capture.tsx`, `app/routes/flags.tsx`, `app/routes/school.tsx` (card wording from `app/lib/explain-flag.ts`), sidebar links in `app/components/layout/Sidebar.tsx` |
+| Screens | `app/routes/dashboard.tsx`, `app/routes/capture.tsx`, `app/routes/flags.tsx`, `app/routes/school.tsx` (wording from `app/lib/explain-flag.ts`), sidebar links in `app/components/layout/Sidebar.tsx` |
 | Actions | `actions/*.ts` (FeeDesk: add-receipt, import-*, list-*, find-candidates, record-match, raise-flag, resolve-flag, get-summary, run-check, load-demo-data) |
 | Logic | `server/lib/` (money, phone, csv, importers incl. the MTN layout, receipt-rules, ledger, matching, reconcile, school) |
 | Data | `server/db/schema.ts`, `server/plugins/db.ts` |
@@ -206,7 +211,13 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 | Date | What changed | Why | Key files | Commit |
 |---|---|---|---|---|
-| 7 Nov | **Deployed** (Netlify `steady-cajeta-ff2c1c`, Neon Frankfurt). QA found `run-check` returned 502 after ~30 s on the live site, verifying only 13–20 receipts per try. Cause: ~10–15 sequential queries per receipt, each crossing the Atlantic. Reproduced locally with real Postgres behind a relay adding 45 ms each way: **2 min 36 s**. Fix: a `CheckPlan` reads the ledger once (5 parallel queries), makes every record-match / raise-flag decision in memory with unchanged rules, and writes everything in one transaction with bulk statements; `record-match`, `raise-flag` and `run-check` all use it; `get-summary` sends its reads in parallel. Same link afterwards: **run-check 1.68 s + summary 0.47 s** (~32 queries instead of 1,000+), identical results (answer-key test unchanged) | The live demo depends on the Check button; Netlify functions stop at ~30 s | `server/lib/reconcile.ts`, `server/lib/matching.ts` | (this commit) |
+| 7 Nov | **Deployed** (Netlify `steady-cajeta-ff2c1c`, later https://feedesk-gh.netlify.app, Neon Frankfurt). QA found `run-check` returned 502 after ~30 s on the live site, verifying only 13–20 receipts per try. Cause: ~10–15 sequential queries per receipt, each crossing the Atlantic. Reproduced locally with real Postgres behind a relay adding 45 ms each way: **2 min 36 s**. Fix: a `CheckPlan` reads the ledger once (5 parallel queries), makes every record-match / raise-flag decision in memory with unchanged rules, and writes everything in one transaction with bulk statements; `record-match`, `raise-flag` and `run-check` all use it; `get-summary` sends its reads in parallel. Same link afterwards: **run-check 1.68 s + summary 0.47 s** (~32 queries instead of 1,000+), identical results (answer-key test unchanged) | The live demo depends on the Check button; Netlify functions stop at ~30 s | `server/lib/reconcile.ts`, `server/lib/matching.ts` | `9f2f85a` |
+
+### Phase 13 — Audit and polish (Sat 7 Nov)
+
+| Date | What changed | Why | Key files | Commit |
+|---|---|---|---|---|
+| 7 Nov | Flag sentences now describe only the uploaded receipts and statements (no "money is missing", no "never reached the bank"). Overview says "N items to review" and the same breakdown as Flags. Placeholders use a contrast-passing token; School examples say "e.g.". Capture: rotate and zoom the photo, stack or sit beside the rows without a 720px table on a phone, DD/MM/YYYY hint. Cookie banner stays visible; the page column ends above it, and on a phone the chat panel is a bottom sheet so Capture stays usable at 390px. Screenshots in `docs/screenshots/`. README, STATUS, DEPLOY, and the agent guides match what is actually built. Students and reminder drafts remain unbuilt. Matching rules and `seed/answer-key.json` unchanged | The copy asserted conclusions the uploads do not support, and the docs still described the scaffold | `app/lib/explain-flag.ts`, `app/routes/{dashboard,flags,capture,school}.tsx`, `app/global.css`, `README.md`, `docs/STATUS.md`, `docs/DEPLOY.md`, `AGENTS.md`, `DESIGN.md`, `DEVELOPING.md` | (this commit) |
 
 ---
 
@@ -243,6 +254,7 @@ agent; merges on GitHub show as Isaac Agyapong.
 | 27 | Hosting | Netlify, git-connected to `scaffold-app`; Neon Postgres (Frankfurt); migrations in the production build | The template ships a Netlify config; every push redeploys; no local build needed on a laptop with a stray `DATABASE_URL` | Netlify CLI deploys from the laptop (the framework guide's route); Vercel/Render |
 | 28 | Who can sign in to the live site | `AUTH_SIGNUP=invited` + `AUTH_BOOTSTRAP_ADMINS` (Kwame), email verification off | No email service; open sign-up would let anyone use the AI credits; verification can't be delivered | Open sign-up with verification (needs an email provider); `AUTH_DISABLED` (exposes everything) |
 | 29 | Writing a check | Read once, decide in memory, write once in one transaction (`CheckPlan`) | Round trips, not computation, are the cost on a remote database; one transaction also means a check is all-or-nothing | Per-receipt writes (simple, but ~1,000 round trips); a database-side stored procedure |
+| 30 | Flag sentences | Name only what the uploaded receipt and the uploaded statement show | A missing line in an upload is not proof the cash never reached a bank | "Money missing" / "never reached the bank" |
 
 ---
 
@@ -256,8 +268,8 @@ agent; merges on GitHub show as Isaac Agyapong.
 **UX found confusing in testing**
 - The design critique was self-scored (`docs/design/CRITIQUE.md`), not done by an independent critic; contrast was checked by eye, not measured.
 - App Designer itself (an iPhone design skill, third-party, no licence file) is not in the repo; only its method was applied.
-- The Add receipt form defaults the date to today. Typing old receipts without changing it creates false
-  "No money found" + "Money with no receipt" pairs.
+- The Add receipt form defaults the date to today. Typing old receipts without changing it creates a receipt
+  with no matching statement line, and a statement line with no matching receipt.
 - "Banked separately…" on a cash flag with no proposed deposit only opens the agent chat; there is no
   deposit picker.
 - Template leftovers: the chat-first sidebar ("New chat", "My chats") and `/home` (Get started + Connect AI,
@@ -265,7 +277,7 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 **Shortcuts and risks**
 - Two people running a check at the very same moment could both record the same match: decisions are made on a snapshot read before the write transaction (no row locks). Fine for one bursar; not for many concurrent users.
-- The framework's cookie-consent banner shows for visitors in consent regions; it governs optional analytics that FeeDesk doesn't configure. Left in place rather than hidden.
+- The framework's cookie-consent banner still shows for visitors in consent regions. It is not hidden. The page column ends above it (measured 7 Nov: review actions at 1280px, and Type the rows at 390px, sit fully above the banner). On a phone the chat panel is a bottom sheet and Capture's date hint sits above that sheet.
 - The database (Frankfurt) and Netlify's functions are in different regions; every page pays the round trips. A database next to the functions would make every page faster.
 - The photo on the Capture screen lives only in that browser tab (not stored); after a reload the rows remain but the photo is gone.
 - The photo flow has been run once with a real model (Kwame's laptop, GPT-6 Luna): it works, but handwriting misreads names; the bursar's check (now with close-match suggestions) is what catches them.
@@ -298,5 +310,5 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 ## 6. Last updated
 
-**7 Nov 2026**. Covers every commit up to **`beea3ac`** ("Make light the default theme; prepare the Netlify
-deploy"), plus the run-check speed commit in Phase 12.
+**7 Nov 2026**. Covers every commit up to **`9f2f85a`** ("Make run-check fast on a remote database"), plus
+the uncommitted polish in Phase 13.

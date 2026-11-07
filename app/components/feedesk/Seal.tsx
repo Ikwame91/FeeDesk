@@ -52,7 +52,7 @@ export function Seal({
   );
 }
 
-/** Small numbers as words, like a cheque: "Twelve need you". */
+/** Small numbers as words, like a cheque. Not used on screen; numerals scan faster. */
 const WORDS = [
   "No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
   "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen", "Twenty",

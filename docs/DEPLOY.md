@@ -3,12 +3,13 @@
 About 30 minutes, all free tiers. Netlify builds the app from GitHub on every push to
 `scaffold-app`; Neon is the hosted Postgres database. Nothing here needs AI credits.
 
-You will save three values in Netlify. **Never commit them or paste them in chat.**
+You will save four values in Netlify. **Never commit them or paste them in chat.**
 
 | Value | What it is |
 |---|---|
 | `DATABASE_URL` | Neon's connection string (step 1) |
 | `BETTER_AUTH_SECRET` | A random secret that signs logins (step 2). Keep it forever; changing it signs everyone out |
+| `SECRETS_ENCRYPTION_KEY` | A second random secret that encrypts stored provider keys (step 2). Not the same value as `BETTER_AUTH_SECRET` |
 | `AUTH_BOOTSTRAP_ADMINS` | Your email address. Sign-up is invite-only, so only this address can create an account |
 
 ---
@@ -23,15 +24,19 @@ You will save three values in Netlify. **Never commit them or paste them in chat
    `postgresql://neondb_owner:…@ep-xxxx-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require`.
    Keep it in a password manager or a private note. This is `DATABASE_URL`.
 
-## 2. Make the login secret
+## 2. Make the two secrets
 
-In a terminal on your laptop:
+In a terminal on your laptop, run this **twice**. Each run is one secret. Do not reuse one string for both.
 
 ```bash
 openssl rand -hex 32
 ```
 
-Copy the 64-character result. This is `BETTER_AUTH_SECRET`. Save it with the database URL.
+- The first 64-character result is `BETTER_AUTH_SECRET`. It signs logins. Keep it; changing it signs everyone out.
+- The second 64-character result is `SECRETS_ENCRYPTION_KEY`. It encrypts provider keys stored by the app.
+
+Save both with the database URL. The same two values are required in local `.env` and in Netlify.
+Write them as `BETTER_AUTH_SECRET=<paste>` and `SECRETS_ENCRYPTION_KEY=<paste>`. Never commit the file.
 
 ## 3. Create the site (Netlify)
 
@@ -43,7 +48,8 @@ Copy the 64-character result. This is `BETTER_AUTH_SECRET`. Save it with the dat
 4. **Site name:** something like `feedesk-adenta` (it becomes `feedesk-adenta.netlify.app`).
 5. Click **Add environment variables** (before deploying) and add:
    - `DATABASE_URL` = the Neon string from step 1 (mark it **secret**)
-   - `BETTER_AUTH_SECRET` = the value from step 2 (mark it **secret**)
+   - `BETTER_AUTH_SECRET` = the first value from step 2 (mark it **secret**)
+   - `SECRETS_ENCRYPTION_KEY` = the second value from step 2 (mark it **secret**)
    - `AUTH_BOOTSTRAP_ADMINS` = your email address
 6. Click **Deploy**. The first build takes about 5–10 minutes.
 7. When it finishes, open **Deploys → the latest deploy → Deploy log** and search for

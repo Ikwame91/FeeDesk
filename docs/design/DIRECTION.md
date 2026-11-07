@@ -47,10 +47,10 @@ colours, kente as wallpaper, Inter, cards around every section, confetti status 
 ## Content (real, from the demo data after "Check")
 
 - School: Adenta Hills Academy · First term 2026/27 · statements to Fri 30 Oct
-- 108 of 119 receipts verified · 11 receipts flagged · 12 flags to review · 17 students still owe
-- Flag examples: Receipt 1031 Linda Asante wrote GHS 407.00, George Asante sent GHS 470.00 (Wed 23 Sept);
-  Receipt 1019 Edem Kpodo GHS 250.00 cash never reached the bank (Thu 17 Sept); three Friday cash
-  receipts, GHS 890.00, banked Mon 12 Oct; GHS 470.00 MoMo from Akosua Addo with no receipt.
+- 108 of 119 receipts verified · 11 receipts flagged · 12 items to review · 17 students still owe
+- Flag examples stay inside the uploads: Receipt 1031 says GHS 407.00 and the uploaded statement shows
+  GHS 470.00; Receipt 1019 has no matching bank deposit in the uploaded statements; three Friday cash
+  receipts equal a deposit on Mon 12 Oct; a statement line from Akosua Addo has no matching receipt.
 
 ## Exploration and decision
 
@@ -78,7 +78,7 @@ soft three-colour **underprint** behind the hero, as on real notes.
 | Ink (foreground) | `hsl(156 9% 11%)` | `hsl(45 25% 88%)` warm white |
 | Secondary ink | `hsl(137 4% 36%)` | `hsl(135 5% 62%)` |
 | Rule (hairlines) | `hsl(78 10% 80%)` | `hsl(147 8% 19%)` |
-| **Oxblood** — the one accent: "act here" and "money missing" | `hsl(2 56% 35%)` | `hsl(7 52% 62%)` |
+| **Oxblood** — the one accent: "act here" | `hsl(2 56% 35%)` | `hsl(7 52% 62%)` |
 | Underprint tints (hero only) | peach `14 62% 70%`, sage `160 28% 62%`, gold `42 55% 70%`, at 16–26% | deepened, 12–22% |
 
 - **Type:** Bodoni Moda (display: the big numeral, headings, receipt numbers as italic "№ 1031") and
@@ -99,13 +99,12 @@ the missing receipt), the entry dims and a small guilloché seal reading *settle
 
 ## Screens built
 
-- **Overview** (`/dashboard`): masthead with the school; hero numeral "108 / 119 receipts are backed by
-  money that *actually arrived*" + totals; the seal; "Twelve need you" queue (4 rows, plain sentences,
-  action at right); "Receipts and statements" (uploads as ruled lines, Write a receipt, Latest receipts with
-  a status column).
-- **To review** (`/flags`): "Twelve to review" heading; one ruled entry per flag: engraved receipt number,
-  plain title, *written in the receipt book* vs *what actually arrived* side by side, what happened / what to
-  do, one primary action, "Mark as a real problem", "Ask the agent", evidence folded away.
+- **Overview** (`/dashboard`): masthead with the school; hero numeral "108 / 119 receipts match a line in the
+  *uploaded statements*" + totals; the seal; "12 items to review" with the same breakdown as To review
+  (4 rows, plain sentences, action at right); "Receipts and statements".
+- **To review** (`/flags`): "12 to review" heading and the breakdown; one ruled entry per flag: engraved
+  receipt number, plain title, *written in the receipt book* vs *uploaded statement*, what the files show /
+  what to do, one primary action, "Mark as a real problem", "Ask the agent", evidence folded away.
 - Sidebar: **Fee*Desk*** wordmark replaces the template logo; Overview / To review (count) / New chat.
 
 - **Capture** (`/capture`): "Read a receipt page"; the photo on one side (above the table when the agent
