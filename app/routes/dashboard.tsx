@@ -66,7 +66,8 @@ export default function DashboardRoute() {
           <div className="flex flex-wrap items-center gap-4">
             {s && s.receipts > 0 && s.unchecked === 0 && (
               <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                <IconCheck className="size-4" strokeWidth={2} /> Every receipt checked
+                <IconCheck className="size-4" strokeWidth={2} />
+                {s.openFlags > 0 ? `Check done · ${s.openFlags} to review` : "Every receipt checked"}
               </span>
             )}
             <button
