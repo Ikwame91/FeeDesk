@@ -219,6 +219,12 @@ agent; merges on GitHub show as Isaac Agyapong.
 |---|---|---|---|---|
 | 7 Nov | Flag sentences now describe only the uploaded receipts and statements (no "money is missing", no "never reached the bank"). Overview says "N items to review" and the same breakdown as Flags. Placeholders use a contrast-passing token; School examples say "e.g.". Capture: rotate and zoom the photo, stack or sit beside the rows without a 720px table on a phone, DD/MM/YYYY hint. Cookie banner stays visible; the page column ends above it, and on a phone the chat panel is a bottom sheet so Capture stays usable at 390px. Screenshots in `docs/screenshots/`. README, STATUS, DEPLOY, and the agent guides match what is actually built. Students and reminder drafts remain unbuilt. Matching rules and `seed/answer-key.json` unchanged | The copy asserted conclusions the uploads do not support, and the docs still described the scaffold | `app/lib/explain-flag.ts`, `app/routes/{dashboard,flags,capture,school}.tsx`, `app/global.css`, `README.md`, `docs/STATUS.md`, `docs/DEPLOY.md`, `AGENTS.md`, `DESIGN.md`, `DEVELOPING.md` | `ec5adf7` |
 
+### Phase 14 — Who still owes (Sat 7 Nov)
+
+| Date | What changed | Why | Key files | Commit |
+|---|---|---|---|---|
+| 7 Nov | Owing (`/owing`) lists who still owes: name, class, fee, paid, balance, flagged receipts, class subtotals, grand total equal to the summary. Linked from Overview, To review, and the sidebar (`list-owing`; one student's receipts via `list-receipts`). To review gains a Decided section for human decisions, and Reopen puts a real-problem flag back in the queue. Capture stops spinning after 45s with no rows and offers the same typed flow. End state stays 12 students owing GHS 5,000.00. No new matching, no reminders | The headline named a total with nowhere to see who it was, and a kept problem could not come back into the queue | `actions/list-owing.ts`, `actions/reopen-flag.ts`, `actions/list-receipts.ts`, `app/routes/owing.tsx`, `app/routes/flags.tsx`, `app/routes/capture.tsx` | (this commit) |
+
 ---
 
 ## 4. Decisions log
@@ -262,7 +268,7 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 **Not built yet (from the plan)**
 - No terms in the data: fees, balances and receipts are all for one term (the term on the School page is a label only).
-- **Students screen** (fee, paid, balance, status) and **reminder drafts** (`draft-reminders`).
+- **Reminder drafts** (`draft-reminders`). Who still owes is on Owing (fee, paid, balance, flagged receipts). There is no separate page of every student.
 - Judges can't sign up to the live site (invite-only); the Clips video is the public demo.
 
 **UX found confusing in testing**
@@ -310,4 +316,4 @@ agent; merges on GitHub show as Isaac Agyapong.
 
 ## 6. Last updated
 
-**7 Nov 2026**. Covers every commit up to **`ec5adf7`** ("Keep review copy inside the uploaded records and document what is actually built").
+**7 Nov 2026**. Covers every commit up to **`ec5adf7`** ("Keep review copy inside the uploaded records and document what is actually built"), plus the uncommitted Owing, Decided, and reopen work in Phase 14.

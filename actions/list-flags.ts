@@ -33,6 +33,7 @@ export default defineAction({
         createdAt: z.string(),
         resolution: z.string().nullable(),
         resolvedBy: z.string().nullable(),
+        resolvedAt: z.string().nullable(),
         receipt,
         moneyLine: z
           .object({

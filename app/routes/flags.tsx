@@ -6,8 +6,8 @@ import {
 } from "@agent-native/core/client/hooks";
 import { useSetPageTitle } from "@agent-native/toolkit/app-shell";
 import { IconMessageCircle } from "@tabler/icons-react";
-import { useState, type FormEvent } from "react";
-import { Link, useSearchParams } from "react-router";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { Link, useLocation, useSearchParams } from "react-router";
 import { toast } from "sonner";
 
 import { Seal } from "@/components/feedesk/Seal";
@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { APP_TITLE } from "@/lib/app-config";
-import { ACTION, dayText, explainFlag, flagLine, flagTag, ghsText, reviewBreakdown, titleCase } from "@/lib/explain-flag";
+import { ACTION, dayText, decisionDay, decisionWords, explainFlag, flagLine, flagTag, ghsText, keptAsProblems, reviewBreakdown, titleCase } from "@/lib/explain-flag";
 import { cn } from "@/lib/utils";
 
 export function meta() {
@@ -30,7 +30,9 @@ const STAMP_MS = 650;
 export default function FlagsRoute() {
   useSetPageTitle("To review");
   const flagsQuery = useActionQuery("list-flags", { includeResolved: "false" });
+  const decidedQuery = useActionQuery("list-flags", { includeResolved: "true" });
   const summary = useActionQuery("get-summary", {});
+  const location = useLocation();
   const school = useActionQuery("get-school-settings", {}).data;
   const [params, setParams] = useSearchParams();
   const selected = params.get("flag");
@@ -41,6 +43,7 @@ export default function FlagsRoute() {
   const [frozen, setFrozen] = useState<Flag[] | null>(null);
 
   const resolve = useActionMutation("resolve-flag");
+  const reopen = useActionMutation("reopen-flag");
   const without = (set: Set<string>, id: string) => {
     const next = new Set(set);
     next.delete(id);
@@ -78,8 +81,19 @@ export default function FlagsRoute() {
   }
 
   const flags = (frozen ?? flagsQuery.data?.flags ?? []).filter((f) => !hidden.has(f.id));
+  const decided = (decidedQuery.data?.flags ?? []).filter(
+    (f) => !!f.resolvedAt && !!f.resolution && !f.resolution.startsWith("auto:"),
+  );
+  const kept = decided.filter((f) => f.resolution!.startsWith("real_problem"));
+  const otherDecided = decided.filter((f) => !f.resolution!.startsWith("real_problem"));
   const s = summary.data;
   const n = flags.length;
+
+  useEffect(() => {
+    const id = location.hash.replace("#", "");
+    if (id !== "decided" && id !== "kept") return;
+    document.getElementById(id)?.scrollIntoView({ block: "start" });
+  }, [location.hash, decidedQuery.data]);
 
   return (
     <div className="h-full overflow-auto">
@@ -98,7 +112,10 @@ export default function FlagsRoute() {
           {s && n > 0 && <p className="tabular mt-3 text-[15px]">{reviewBreakdown(flags)}</p>}
           {s && (
             <p className="tabular mt-1 text-sm text-muted-foreground">
-              {s.verified} of {s.receipts} receipts match an uploaded line · {s.studentsOwing} students owe {ghsText(s.owedGhs)}
+              {s.verified} of {s.receipts} receipts match an uploaded line ·{" "}
+              <Link to="/owing" className="font-semibold text-oxblood underline-offset-4 hover:underline">
+                {s.studentsOwing} students still owe {ghsText(s.owedGhs)}
+              </Link>
             </p>
           )}
         </header>
@@ -116,11 +133,13 @@ export default function FlagsRoute() {
                   {s.unchecked} receipts haven't been checked yet. Check them from the{" "}
                   <Link to="/dashboard" className="text-oxblood underline underline-offset-4">Overview</Link>.
                 </>
+              ) : s && s.flagged > 0 ? (
+                <>Nothing left to review. {keptAsProblems(s.flagged)}.</>
               ) : (
                 <>Every receipt matches an uploaded line, or has a decision on it.</>
               )}
             </p>
-            {s && s.unchecked === 0 && <Seal label="all square" className="w-[200px]" />}
+            {s && s.unchecked === 0 && s.flagged === 0 && <Seal label="all square" className="w-[200px]" />}
           </section>
         ) : (
           <ol className="mt-8 border-t-[1.5px] border-foreground">
@@ -136,6 +155,54 @@ export default function FlagsRoute() {
             ))}
           </ol>
         )}
+
+        {decided.length > 0 && (
+          <section id="decided" className="mt-16 scroll-mt-6">
+            <h2 className="border-t-[1.5px] border-foreground pt-4 font-display text-2xl font-semibold">Decided</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Decisions a person made. Automatic matches stay off this list.</p>
+            {kept.length > 0 && (
+              <div id="kept" className="scroll-mt-6">
+                <h3 className="mt-6 font-display text-xl font-semibold">Kept as problems</h3>
+                <ul className="mt-2 border-t border-foreground">
+                  {kept.map((f) => (
+                    <DecidedRow
+                      key={f.id}
+                      flag={f}
+                      reopen={
+                        <button
+                          type="button"
+                          className="text-sm font-semibold underline-offset-4 hover:underline disabled:opacity-50"
+                          disabled={reopen.isPending}
+                          onClick={() =>
+                            reopen.mutate(
+                              { flagId: f.id },
+                              {
+                                onSuccess: (r) => toast.success(r.message),
+                                onError: (error) => toast.error(actionErrorMessage(error) ?? "Couldn't reopen that."),
+                              },
+                            )
+                          }
+                        >
+                          Reopen
+                        </button>
+                      }
+                    />
+                  ))}
+                </ul>
+              </div>
+            )}
+            {otherDecided.length > 0 && (
+              <div>
+                <h3 className="mt-8 font-display text-xl font-semibold">Other decisions</h3>
+                <ul className="mt-2 border-t border-foreground">
+                  {otherDecided.map((f) => (
+                    <DecidedRow key={f.id} flag={f} />
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+        )}
       </div>
     </div>
   );
@@ -149,6 +216,42 @@ interface FlagReceipt {
   amountGhs: string;
   method: string;
 }
+interface DecidedFlag {
+  id: string;
+  note: string;
+  resolution: string | null;
+  resolvedBy: string | null;
+  resolvedAt: string | null;
+  receipt: FlagReceipt | null;
+  moneyLine: { payerName: string | null; amountGhs: string } | null;
+}
+
+function decidedSubject(f: DecidedFlag): string {
+  if (f.receipt) return `Receipt ${f.receipt.receiptNo} · ${f.receipt.studentName} · ${ghsText(f.receipt.amountGhs)}`;
+  if (f.moneyLine) {
+    const payer = f.moneyLine.payerName ? titleCase(f.moneyLine.payerName) : "Payment";
+    return `${ghsText(f.moneyLine.amountGhs)} · ${payer}`;
+  }
+  return "Payment";
+}
+
+function DecidedRow({ flag: f, reopen }: { flag: DecidedFlag; reopen?: ReactNode }) {
+  return (
+    <li className="flex flex-col gap-1 border-b border-rule py-3 text-[15px]">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="min-w-0 font-display text-lg leading-tight">{decidedSubject(f)}</p>
+        {reopen}
+      </div>
+      <p>{f.resolution ? decisionWords(f.resolution) : ""}</p>
+      <p className="text-sm text-muted-foreground">
+        <span className="tabular">{f.resolvedAt ? decisionDay(f.resolvedAt) : ""}</span>
+        {f.resolvedBy ? ` · ${f.resolvedBy}` : ""}
+      </p>
+      {f.note && <p className="text-sm text-muted-foreground">{f.note}</p>}
+    </li>
+  );
+}
+
 interface Flag {
   id: string;
   kind: string;

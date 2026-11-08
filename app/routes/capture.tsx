@@ -14,6 +14,7 @@ import { Seal } from "@/components/feedesk/Seal";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { APP_TITLE } from "@/lib/app-config";
+import { captureReadingStalled } from "@/lib/capture-wait";
 import { cn } from "@/lib/utils";
 
 export function meta() {
@@ -108,6 +109,8 @@ export default function CaptureRoute() {
   const batchId = params.get("batch") ?? undefined;
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [sentAt, setSentAt] = useState<number | null>(null);
+  const [seenAt, setSeenAt] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const [edits, setEdits] = useState<Edits>({});
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const fileInput = useRef<HTMLInputElement>(null);
@@ -138,6 +141,18 @@ export default function CaptureRoute() {
   const c = capture.data?.capture;
   const rows = c?.rows ?? [];
   const reading = !!batchId && (!c || c.status === "reading");
+  const stalled = captureReadingStalled({ reading, rowCount: rows.length, sentAt: sentAt ?? seenAt, now });
+
+  useEffect(() => {
+    if (reading && rows.length === 0) setSeenAt((current) => current ?? Date.now());
+    else setSeenAt(null);
+  }, [reading, rows.length, batchId]);
+
+  useEffect(() => {
+    if (!reading || rows.length > 0) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [reading, rows.length]);
 
   async function onPhoto(file: File | undefined) {
     if (!file) return;
@@ -295,18 +310,31 @@ export default function CaptureRoute() {
               </div>
             ) : reading ? (
               <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-4">
-                  <Seal label="reading" className="feedesk-reading w-20" />
-                  <div>
-                    <h2 className="font-display text-2xl font-semibold">The agent is reading the page…</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Follow along in the chat panel.{sentAt ? " The rows appear here as soon as it saves them." : ""}
-                    </p>
-                  </div>
-                </div>
-                {Array.from({ length: 5 }, (_, i) => (
-                  <Skeleton key={i} className="h-10 w-full" />
-                ))}
+                {stalled ? (
+                  <>
+                    <h2 className="font-display text-2xl font-semibold">No rows yet. The agent may be out of AI credits or still working.</h2>
+                    <div>
+                      <Button variant="outline" className="border-foreground" onClick={() => saveTable(true)} disabled={save.isPending}>
+                        <IconPlus className="size-4" /> Type the rows instead
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-4">
+                      <Seal label="reading" className="feedesk-reading w-20" />
+                      <div>
+                        <h2 className="font-display text-2xl font-semibold">The agent is reading the page…</h2>
+                        <p className="text-sm text-muted-foreground">
+                          Follow along in the chat panel.{sentAt ? " The rows appear here as soon as it saves them." : ""}
+                        </p>
+                      </div>
+                    </div>
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <Skeleton key={i} className="h-10 w-full" />
+                    ))}
+                  </>
+                )}
               </div>
             ) : (
               <>

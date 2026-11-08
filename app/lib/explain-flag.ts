@@ -40,6 +40,28 @@ export const ghsText = (amount: string) =>
 export const dayText = (d: string) =>
   new Date(`${d}T00:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 
+/** DD/MM/YYYY from an ISO timestamp, in UTC so the day doesn't shift with the laptop's zone. */
+export function decisionDay(iso: string): string {
+  const d = new Date(iso);
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}/${d.getUTCFullYear()}`;
+}
+
+/** Plain words for a stored resolution. Auto decisions (prefix "auto:") are not human decisions. */
+export function decisionWords(resolution: string): string {
+  if (resolution.startsWith("real_problem")) return "Kept as a problem";
+  if (resolution.startsWith("fix_amount")) return "Corrected the receipt to the statement amount";
+  if (resolution.startsWith("void_duplicate")) return "Voided the extra receipt";
+  if (resolution.startsWith("add_receipt")) return "Wrote a receipt for the payment";
+  if (resolution.startsWith("accept_match")) return "Confirmed the payment matches";
+  return resolution;
+}
+
+export function keptAsProblems(n: number): string {
+  return n === 1 ? "1 receipt is kept as a problem" : `${n} receipts are kept as problems`;
+}
+
 export const titleCase = (s: string) => s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
 const statementName = (source: string) => (source === "momo" ? "MoMo statement" : "bank statement");

@@ -7,9 +7,10 @@ import { pesewasToGhs } from "../server/lib/money.js";
 
 export default defineAction({
   description:
-    "List recorded receipts, newest receipt number first, with student name and amount in GHS. Also returns totals: how many receipts, students, MoMo lines and bank lines are recorded.",
+    "List recorded receipts, newest receipt number first, with student name and amount in GHS. Pass studentId to list one student's receipts. Also returns totals: how many receipts, students, MoMo lines and bank lines are recorded.",
   schema: z.object({
     limit: z.coerce.number().int().min(1).max(500).default(50).describe("How many receipts to return; defaults to 50"),
+    studentId: z.string().optional().describe("Only receipts for this student id"),
   }),
   outputSchema: z.object({
     receipts: z.array(
@@ -30,7 +31,7 @@ export default defineAction({
   }),
   http: { method: "GET" },
   readOnly: true,
-  run: async ({ limit }, ctx) => {
+  run: async ({ limit, studentId }, ctx) => {
     if (!ctx?.userEmail) fail("Sign in to see receipts.", { errorCode: "not_signed_in", statusCode: 401 });
     const { receipts: r, students: s, moneyLines: m } = schema;
     const db = getDb();
@@ -49,6 +50,7 @@ export default defineAction({
       })
       .from(r)
       .innerJoin(s, eq(s.id, r.studentId))
+      .where(studentId ? eq(r.studentId, studentId) : undefined)
       .orderBy(desc(r.createdAt), desc(sql`length(${r.receiptNo})`), desc(r.receiptNo))
       .limit(limit);
     const n = sql<number>`count(*)`;

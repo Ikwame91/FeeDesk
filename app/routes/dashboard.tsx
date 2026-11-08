@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { APP_TITLE } from "@/lib/app-config";
-import { flagLine, ghsText, reviewBreakdown } from "@/lib/explain-flag";
+import { flagLine, ghsText, keptAsProblems, reviewBreakdown } from "@/lib/explain-flag";
 import { cn } from "@/lib/utils";
 
 export function meta() {
@@ -97,7 +97,13 @@ export default function DashboardRoute() {
         </section>
 
         {/* What needs the bursar */}
-        <NeedsYou flags={flags.data?.flags} loading={flags.isLoading} unchecked={s?.unchecked ?? 0} receipts={s?.receipts ?? 0} />
+        <NeedsYou
+          flags={flags.data?.flags}
+          loading={flags.isLoading}
+          unchecked={s?.unchecked ?? 0}
+          receipts={s?.receipts ?? 0}
+          flagged={s?.flagged ?? 0}
+        />
 
         {/* Bringing things in */}
         <section className="mt-16">
@@ -128,7 +134,9 @@ export default function DashboardRoute() {
 interface SummaryData {
   receipts: number;
   verified: number;
+  flagged: number;
   unchecked: number;
+  openFlags: number;
   studentsOwing: number;
   verifiedGhs: string;
   owedGhs: string;
@@ -175,8 +183,19 @@ function Hero({ s }: { s: SummaryData | undefined }) {
         receipts match a line in the <em className="whitespace-nowrap text-oxblood">uploaded statements</em>.
       </p>
       <p className="tabular mt-3 text-sm text-muted-foreground">
-        {ghsText(s.verifiedGhs)} matched · {s.studentsOwing} students still owe {ghsText(s.owedGhs)}
+        {ghsText(s.verifiedGhs)} matched ·{" "}
+        <Link to="/owing" className="font-semibold text-oxblood underline-offset-4 hover:underline">
+          {s.studentsOwing} students still owe {ghsText(s.owedGhs)}
+        </Link>
         {s.unchecked > 0 ? ` · ${s.unchecked} not checked yet` : ""}
+        {s.flagged > 0 && s.openFlags === 0 ? (
+          <>
+            {" · "}
+            <Link to="/flags#kept" className="font-semibold text-oxblood underline-offset-4 hover:underline">
+              {s.flagged} kept as problems
+            </Link>
+          </>
+        ) : null}
       </p>
     </div>
   );
@@ -189,23 +208,35 @@ function NeedsYou({
   loading,
   unchecked,
   receipts,
+  flagged,
 }: {
   flags: FlagItem[] | undefined;
   loading: boolean;
   unchecked: number;
   receipts: number;
+  flagged: number;
 }) {
   if (loading) return <Skeleton className="mt-12 h-40 w-full" />;
   const n = flags?.length ?? 0;
   if (n === 0) {
     if (receipts === 0) return null;
+    const kept = flagged > 0 && unchecked === 0;
     return (
       <section className="mt-12 border-t-[1.5px] border-foreground pt-4">
         <h2 className="font-display text-2xl font-semibold">{unchecked > 0 ? "Not checked yet" : "No items to review"}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          {unchecked > 0
-            ? `${unchecked} receipts are waiting. Check them and only the mismatches will come back here.`
-            : "Every receipt matches an uploaded line, or has a decision on it."}
+          {unchecked > 0 ? (
+            `${unchecked} receipts are waiting. Check them and only the mismatches will come back here.`
+          ) : kept ? (
+            <>
+              Nothing left to review.{" "}
+              <Link to="/flags#kept" className="font-semibold text-oxblood underline-offset-4 hover:underline">
+                {keptAsProblems(flagged)}.
+              </Link>
+            </>
+          ) : (
+            "Every receipt matches an uploaded line, or has a decision on it."
+          )}
         </p>
       </section>
     );
@@ -454,7 +485,7 @@ function Status({ status }: { status: string }) {
         <IconCheck className="size-3.5" strokeWidth={2} /> Backed
       </span>
     );
-  if (status === "flagged") return <span className="font-semibold text-oxblood">To review</span>;
+  if (status === "flagged") return <span className="font-semibold text-oxblood">Flagged</span>;
   if (status === "void") return <span className="text-muted-foreground line-through">Void</span>;
   return <span className="text-muted-foreground">Not checked</span>;
 }

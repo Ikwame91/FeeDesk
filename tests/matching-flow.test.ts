@@ -14,6 +14,8 @@ import { getDb, schema } from "../server/db/index";
 import { parseBankCsv, parseMomoCsv, parseReceiptsCsv, parseStudentsCsv } from "../server/lib/importers";
 import { addReceipts, insertMoneyLines, upsertStudents } from "../server/lib/ledger";
 import { suggestNextPage } from "../server/lib/matching";
+import listStudents from "../actions/list-students";
+import { owingList } from "../app/lib/owing";
 import { getSummary, listFlags, loadLedger, raiseFlags, recordMatches, resolveFlag } from "../server/lib/reconcile";
 import { FEEDESK_MIGRATIONS } from "../server/plugins/db";
 
@@ -95,8 +97,14 @@ describe("check everything on the demo data", () => {
     }
     const s = await getSummary();
     expect(s.headline).toBe("118 of 120 receipts verified · 2 flagged · 12 students owing");
+    expect(s.studentsOwing).toBe(12);
+    expect(s.owedGhs).toBe("5000.00");
     expect(s.openFlags).toBe(0);
     expect(s.moneyLinesUnmatched).toBe(0);
+
+    const listed = owingList((await listStudents.run({}, { userEmail: who })).students);
+    expect(listed.rows).toHaveLength(12);
+    expect(listed.totalGhs).toBe(s.owedGhs);
 
     // The two left are the planted real problems.
     const flagged = (await getDb().select().from(schema.receipts).where(eq(schema.receipts.status, "flagged"))).map((r) => r.receiptNo).sort();

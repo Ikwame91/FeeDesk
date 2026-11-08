@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { explainFlag, flagTag } from "./explain-flag";
+import { decisionDay, decisionWords, explainFlag, flagTag, keptAsProblems } from "./explain-flag";
 
 const receipt = (over: Partial<{ receiptNo: string; date: string; studentName: string; amountGhs: string; method: string }> = {}) => ({
   receiptNo: "1082",
@@ -83,5 +83,16 @@ describe("explainFlag stays inside the uploaded records", () => {
     expect(e.happened).toContain("No matching bank deposit found in the uploaded statements");
     expect(`${e.title} ${e.happened} ${e.todo}`).not.toMatch(/never reached|money is missing|missing/);
     expect(flagTag(input)).toBe("No matching deposit");
+  });
+});
+
+describe("decided-item words", () => {
+  it("names a person's decision and dates it DD/MM/YYYY", () => {
+    expect(decisionWords("real_problem")).toBe("Kept as a problem");
+    expect(decisionWords("fix_amount: corrected from 450.00 to 470.00")).toBe("Corrected the receipt to the statement amount");
+    expect(decisionWords("auto: a receipt was found for this payment")).not.toBe("Kept as a problem");
+    expect(decisionDay("2026-11-07T23:30:00.000Z")).toBe("07/11/2026");
+    expect(keptAsProblems(2)).toBe("2 receipts are kept as problems");
+    expect(keptAsProblems(1)).toBe("1 receipt is kept as a problem");
   });
 });

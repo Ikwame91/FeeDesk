@@ -20,6 +20,7 @@ import {
   IconBuildingCommunity,
   IconCamera,
   IconFlag,
+  IconListNumbers,
   IconMoon,
   IconSun,
   IconLayoutDashboard,
@@ -187,6 +188,39 @@ function FlagsNavLink({ collapsed }: { collapsed: boolean }) {
       <Tooltip>
         <TooltipTrigger asChild>{link}</TooltipTrigger>
         <TooltipContent side="right">To review</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return <div className="px-2">{link}</div>;
+}
+
+function OwingNavLink({ collapsed }: { collapsed: boolean }) {
+  const location = useLocation();
+  const active = location.pathname.startsWith("/owing");
+  const link = (
+    <Link
+      to="/owing"
+      aria-current={active ? "page" : undefined}
+      aria-label={collapsed ? "Owing" : undefined}
+      className={cn(
+        "flex items-center text-sidebar-accent-foreground transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+        active && "bg-sidebar-accent",
+        collapsed
+          ? "size-8 justify-center rounded-md"
+          : "h-8 w-full gap-3 rounded-lg px-3 text-sm font-medium",
+      )}
+    >
+      <IconListNumbers className="size-4 shrink-0" strokeWidth={1.8} />
+      <span className={collapsed ? "sr-only" : "truncate"}>Owing</span>
+    </Link>
+  );
+
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{link}</TooltipTrigger>
+        <TooltipContent side="right">Owing</TooltipContent>
       </Tooltip>
     );
   }
@@ -543,6 +577,7 @@ export function Sidebar({
         <DashboardNavLink collapsed={collapsed} />
         <CaptureNavLink collapsed={collapsed} />
         <FlagsNavLink collapsed={collapsed} />
+        <OwingNavLink collapsed={collapsed} />
         <SchoolNavLink collapsed={collapsed} />
         <ThemeSwitch collapsed={collapsed} />
         <ChatThreadsSection collapsed={collapsed} />

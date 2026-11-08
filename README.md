@@ -23,7 +23,7 @@ nobody has time to check that they agree.
    differences, and duplicate receipts.
 5. **Resolve.** The bursar settles each flag with one tap or in chat.
 
-Students (fee, paid, balance) and reminder drafts are not built.
+Who still owes is on Owing (fee, paid, balance). Reminder drafts are not built.
 
 The same actions run from a button click, from chat, and from a photo. People and the agent
 work on the same data.
@@ -40,7 +40,7 @@ Live demo: https://feedesk-gh.netlify.app (branch `scaffold-app`). Current detai
 - [x] Data tables and actions
 - [x] Matching and flags (Overview "Check everything" / "Check without AI", Flags screen)
 - [x] Deployed demo (Netlify + Neon)
-- [ ] Students screen
+- [x] Owing (`/owing`): who still owes, with fee, paid, and balance
 - [ ] Reminder drafts
 
 ## Run it locally

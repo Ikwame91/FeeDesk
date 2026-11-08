@@ -419,6 +419,27 @@ export async function resolveFlag(input: ResolveInput, who: string): Promise<{ m
   }
 }
 
+/**
+ * Put a real-problem decision back in the queue. Other decisions changed receipts
+ * or matches, so they stay decided.
+ */
+export async function reopenFlag(flagId: string): Promise<{ message: string }> {
+  const db = getDb();
+  const [flag] = await db.select().from(flags).where(eq(flags.id, flagId)).limit(1);
+  if (!flag) throw new ReconcileError(`No flag ${flagId}.`, "not_found");
+  if (!flag.resolution?.startsWith("real_problem")) {
+    throw new ReconcileError(
+      flag.resolution
+        ? `Only a flag kept as a real problem can be reopened. This one was decided as ${flag.resolution}.`
+        : "That flag is still in the queue.",
+      "bad_resolution",
+    );
+  }
+  await db.update(flags).set({ resolution: null, resolvedBy: null, resolvedAt: null }).where(eq(flags.id, flag.id));
+  const [receipt] = flag.receiptId ? await db.select().from(receipts).where(eq(receipts.id, flag.receiptId)).limit(1) : [];
+  return { message: receipt ? `Receipt ${receipt.receiptNo} is back in the queue.` : "That flag is back in the queue." };
+}
+
 // ---------- the whole check, no AI ----------
 /**
  * Runs every page of suggestions through record-match and raise-flag, exactly as the
@@ -537,6 +558,7 @@ export async function listFlags(includeResolved = false, limit = 100) {
       createdAt: f.createdAt,
       resolution: f.resolution,
       resolvedBy: f.resolvedBy,
+      resolvedAt: f.resolvedAt,
       receipt: describeReceipt(f.receiptId ? receiptById.get(f.receiptId) : undefined),
       moneyLine: line
         ? {
