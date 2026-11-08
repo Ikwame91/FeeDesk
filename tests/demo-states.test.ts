@@ -74,7 +74,7 @@ describe("four demo states", () => {
       expect(balances).toEqual([...balances].sort((a, b) => b - a));
     }
     const edem = owing.students.find((student) => student.name === "Edem Kpodo");
-    expect(edem?.flaggedReceipts.map((row) => row.mark)).toContain("GHS 250.00 on receipt 1019, kept as a problem");
+    expect(edem?.flaggedReceipts.map((row) => row.mark)).toContain("GHS 250.00 on receipt 1019, under review");
   });
 
   it("after 1114–1119 is 108 of 119, 11 flagged, 17 owing, 12 cards", async () => {

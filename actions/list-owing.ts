@@ -8,7 +8,9 @@ import { pesewasToGhs } from "../server/lib/money.js";
 const flaggedReceipt = z.object({
   receiptNo: z.string(),
   amountGhs: z.string(),
-  mark: z.string().describe('e.g. "GHS 250.00 on receipt 1019, kept as a problem"'),
+  mark: z
+    .string()
+    .describe('"GHS 250.00 on receipt 1019, kept as a problem" after a real_problem decision; "under review" while the flag is still open'),
 });
 
 const owingStudent = z.object({
@@ -22,10 +24,11 @@ const owingStudent = z.object({
   flaggedReceipts: z.array(flaggedReceipt),
 });
 
-/** Same words as the Owing page. Amounts use the GHS string from pesewas, so 25000 is GHS 250.00. */
-export function keptProblemMark(amountGhs: string, receiptNo: string): string {
+/** "kept as a problem" only after a real_problem decision. An open flag is still under review. */
+export function flaggedReceiptMark(amountGhs: string, receiptNo: string, resolution: string | null): string {
   const shown = Number(amountGhs).toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `GHS ${shown} on receipt ${receiptNo}, kept as a problem`;
+  const words = resolution?.startsWith("real_problem") ? "kept as a problem" : "under review";
+  return `GHS ${shown} on receipt ${receiptNo}, ${words}`;
 }
 
 export default defineAction({
@@ -48,7 +51,7 @@ export default defineAction({
   readOnly: true,
   run: async (_args, ctx) => {
     if (!ctx?.userEmail) fail("Sign in to see who owes.", { errorCode: "not_signed_in", statusCode: 401 });
-    const { students, receipts } = schema;
+    const { students, receipts, flags } = schema;
     const db = getDb();
     // Same balance as getSummary: term fee minus verified receipts only.
     const [owing, flagged] = await Promise.all([
@@ -69,15 +72,34 @@ export default defineAction({
           studentId: receipts.studentId,
           receiptNo: receipts.receiptNo,
           amountPesewas: receipts.amountPesewas,
+          resolution: flags.resolution,
         })
         .from(receipts)
+        .leftJoin(flags, eq(flags.receiptId, receipts.id))
         .where(eq(receipts.status, "flagged")),
     ]);
 
-    const flaggedByStudent = new Map<string, { receiptNo: string; amountPesewas: number }[]>();
+    const flaggedByReceipt = new Map<string, { studentId: string; receiptNo: string; amountPesewas: number; kept: boolean; open: boolean }>();
     for (const row of flagged) {
+      const existing = flaggedByReceipt.get(row.receiptNo) ?? {
+        studentId: row.studentId,
+        receiptNo: row.receiptNo,
+        amountPesewas: row.amountPesewas,
+        kept: false,
+        open: false,
+      };
+      if (row.resolution?.startsWith("real_problem")) existing.kept = true;
+      if (!row.resolution) existing.open = true;
+      flaggedByReceipt.set(row.receiptNo, existing);
+    }
+    const flaggedByStudent = new Map<string, { receiptNo: string; amountPesewas: number; resolution: string | null }[]>();
+    for (const row of flaggedByReceipt.values()) {
       const list = flaggedByStudent.get(row.studentId) ?? [];
-      list.push({ receiptNo: row.receiptNo, amountPesewas: row.amountPesewas });
+      list.push({
+        receiptNo: row.receiptNo,
+        amountPesewas: row.amountPesewas,
+        resolution: row.kept && !row.open ? "real_problem" : null,
+      });
       flaggedByStudent.set(row.studentId, list);
     }
 
@@ -99,7 +121,7 @@ export default defineAction({
           flaggedReceipts: problems.map((item) => ({
             receiptNo: item.receiptNo,
             amountGhs: pesewasToGhs(item.amountPesewas),
-            mark: keptProblemMark(pesewasToGhs(item.amountPesewas), item.receiptNo),
+            mark: flaggedReceiptMark(pesewasToGhs(item.amountPesewas), item.receiptNo, item.resolution),
           })),
         };
       })

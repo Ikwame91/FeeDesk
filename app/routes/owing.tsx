@@ -54,6 +54,11 @@ export default function OwingRoute() {
               {n === 0 ? "No one still owes" : `${n} still owing`}
             </h1>
           )}
+          {n > 0 && (
+            <p className="tabular mt-4 font-display text-[clamp(28px,4vw,40px)] leading-none">
+              {ghsText(owing.data?.totalGhs ?? "0.00")} still owed
+            </p>
+          )}
           <p className="mt-3 max-w-xl text-[15px] text-muted-foreground">
             The term fee minus receipts that have been verified. A flagged or unchecked receipt is not counted as paid.
           </p>
